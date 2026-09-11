@@ -1,6 +1,10 @@
 MIT License
 
+<<<<<<< HEAD
 Copyright (c) 2026 GreenVoltz Contributors
+=======
+Copyright (c) 2026 Gami Tanvi Jigar
+>>>>>>> 2d8c68c43f06d8e7728868b78c03ddabcb5b36c0
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,6 +23,7 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+<<<<<<< HEAD
 
 ------------------------------------------------------------------------------
 Attribution Notice:
@@ -27,3 +32,5 @@ framework in data_pipeline/ and intelligence/forecasting/ were adapted from:
 EV-Charging-Demand-Optimisation
 Copyright (c) 2026 James Westwood
 Licensed under the MIT License.
+=======
+>>>>>>> 2d8c68c43f06d8e7728868b78c03ddabcb5b36c0
