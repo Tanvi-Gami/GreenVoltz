@@ -9,11 +9,12 @@ from intelligence.optimiser.models import (
     ScheduleResult,
     ScheduleStatus,
 )
-from intelligence.optimiser.scheduler import CPSATScheduler
+from intelligence.optimiser.scheduler import CPSATScheduler, optimise
 
 __all__ = [
     "BaseScheduler",
     "CPSATScheduler",
+    "optimise",
     "ScheduleRequest",
     "ScheduleResult",
     "ScheduleStatus",

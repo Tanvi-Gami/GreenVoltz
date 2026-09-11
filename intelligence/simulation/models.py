@@ -1,80 +1,93 @@
-"""Domain data models for EV fleet simulation and synthetic request generation."""
+"""Domain models for the simulation."""
+from __future__ import annotations
 
-from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
-from typing import Optional
+from typing import Dict, List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
-class ConnectorType(str, Enum):
-    """Standard physical connector types."""
-
-    TYPE_2 = "type_2"
-    CCS_2 = "ccs_2"
-    CHADEMO = "chademo"
-
-
-class VehicleType(str, Enum):
-    """Vehicle classification category."""
-
-    PASSENGER_CAR = "passenger_car"
-    LIGHT_COMMERCIAL = "light_commercial"
-    BUS = "bus"
-    HEAVY_GOODS = "heavy_goods"
+class Charger(BaseModel):
+    charger_id: str
+    station_id: str
+    connector_type: str
+    max_power_kw: float
+    status: str = "available"
+    current_ev_id: Optional[str] = None
+    efficiency: float = 0.95
 
 
-class OptimizationPreference(str, Enum):
-    """User priority trade-off mode."""
-
-    MINIMIZE_COST = "minimize_cost"
-    MINIMIZE_CARBON = "minimize_carbon"
-    FASTEST_CHARGE = "fastest_charge"
-    BALANCED = "balanced"
-
-
-@dataclass
-class DriverPreferences:
-    """Driver charging preferences and constraints."""
-
-    optimization_preference: OptimizationPreference = OptimizationPreference.BALANCED
-    max_budget: Optional[float] = None
-    willing_to_delay: bool = True
-    min_acceptable_departure_soc: float = 80.0
+class Station(BaseModel):
+    station_id: str
+    name: str
+    latitude: float
+    longitude: float
+    charger_ids: List[str]
+    total_capacity: int
+    reliability_score: float
+    base_tariff: float
+    renewable_capability: float = 0.0
+    operational_status: str = "operational"
 
 
-@dataclass
-class BatteryState:
-    """EV battery state of charge (SOC) and capacity parameters."""
-
-    capacity_kwh: float
-    current_soc_pct: float
-    target_soc_pct: float = 80.0
-
-    @property
-    def energy_required_kwh(self) -> float:
-        """Calculate kWh needed to reach target SOC."""
-        deficit_pct = max(0.0, self.target_soc_pct - self.current_soc_pct)
-        return float(self.capacity_kwh * (deficit_pct / 100.0))
-
-
-@dataclass
-class SimulatedEV:
-    """Representation of an individual electric vehicle."""
-
-    vehicle_id: str
-    vehicle_type: VehicleType
-    connector_type: ConnectorType
-    battery: BatteryState
-    max_charge_rate_kw: float = 50.0
+class EV(BaseModel):
+    ev_id: str
+    battery_capacity_kwh: float
+    current_soc: float
+    target_soc: float
+    max_charging_power_kw: float
+    connector_type: str
+    arrival_slot: int
+    departure_slot: int
+    preferred_station_ids: List[str]
+    maximum_budget: Optional[float] = None
+    minimum_required_soc: Optional[float] = None
+    profile: Optional[str] = None
 
 
-@dataclass
-class SimulatedChargingRequest:
-    """A simulated charging session request submitted to GreenVoltz."""
-
+class ChargingRequest(BaseModel):
     request_id: str
-    ev: SimulatedEV
-    arrival_time: datetime
-    departure_deadline: datetime
+    ev_id: str
+    arrival_slot: int
+    departure_slot: int
     energy_required_kwh: float
-    preferences: DriverPreferences = field(default_factory=DriverPreferences)
+    current_soc: float
+    target_soc: float
+    connector_type: str
+    max_power_kw: float
+    budget: Optional[float]
+    preferences: Dict = Field(default_factory=dict)
+
+
+class StationState(BaseModel):
+    station_id: str
+    available_chargers: int
+    occupied_chargers: int
+    queue_length: int
+    estimated_wait_minutes: int
+    current_tariff: float
+    renewable_availability: float
+    carbon_intensity_gco2: float
+    reliability: float
+    congestion: float
+
+
+class SimulationState(BaseModel):
+    generated_at: datetime
+    horizon_slots: int
+    time_step_minutes: int
+    stations: List[Station]
+    chargers: List[Charger]
+    evs: List[EV]
+    requests: List[ChargingRequest]
+    station_states: List[StationState]
+    tariffs: List[List[float]]
+    renewable_profile: List[float]
+    carbon_profile: List[float]
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+# Compatibility shims removed: use canonical `EV` and `ChargingRequest` models.
+
+

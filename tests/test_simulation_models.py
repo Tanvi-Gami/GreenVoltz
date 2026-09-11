@@ -1,41 +1,24 @@
-"""Tests for EV simulation domain models and generator placeholder."""
+"""Tests for canonical Phase 3 simulation models and generator."""
 
-from datetime import datetime, timezone
-
-from intelligence.simulation.generator import BasicSimulationGenerator
-from intelligence.simulation.models import (
-    BatteryState,
-    SimulatedEV,
-)
+from intelligence.simulation import generate_simulation
+from intelligence.simulation.energy import energy_required_kwh
 
 
-def test_battery_state_energy_required():
-    """Verify calculation of energy required from SOC delta."""
-    battery = BatteryState(
-        capacity_kwh=100.0,
-        current_soc_pct=20.0,
-        target_soc_pct=80.0,
-    )
-    # Deficit is 60% of 100 kWh = 60 kWh
-    assert battery.energy_required_kwh == 60.0
-
-    # Over target SOC should require 0 kWh
-    battery_full = BatteryState(
-        capacity_kwh=100.0,
-        current_soc_pct=90.0,
-        target_soc_pct=80.0,
-    )
-    assert battery_full.energy_required_kwh == 0.0
+def test_energy_required_from_ev_soc():
+    """Verify energy calculation derived from EV battery SOC values."""
+    # Use canonical EV semantics: SOCs are fractional (0.0-1.0)
+    capacity = 100.0
+    current = 0.2
+    target = 0.8
+    energy = energy_required_kwh(capacity, current, target)
+    assert round(energy, 6) == 60.0
 
 
-def test_basic_simulation_generator():
-    """Verify fleet and request generation stubs."""
-    generator = BasicSimulationGenerator()
-    fleet = generator.generate_fleet(count=10)
-    assert len(fleet) == 10
-    assert all(isinstance(ev, SimulatedEV) for ev in fleet)
-
-    start = datetime(2026, 9, 12, 8, 0, tzinfo=timezone.utc)
-    requests = generator.generate_requests(fleet, start_time=start, duration_hours=12)
-    assert len(requests) == 10
-    assert all(req.arrival_time < req.departure_deadline for req in requests)
+def test_generate_simulation_produces_evs_and_requests():
+    """Verify `generate_simulation` creates EVs and matching requests."""
+    sim = generate_simulation(seed=1, num_evs=10, num_stations=2, horizon_hours=12, time_step_minutes=15)
+    assert len(sim.evs) == 10
+    assert len(sim.requests) == 10
+    # Requests must have arrival before departure (slot-based)
+    for req in sim.requests:
+        assert req.arrival_slot < req.departure_slot

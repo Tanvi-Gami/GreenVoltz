@@ -41,5 +41,5 @@ def test_internal_module_imports():
     from intelligence.forecasting.targets import ForecastTarget, get_target_config  # noqa: F401
     from intelligence.forecasting.trainer import MultiQuantileForecaster, train_quantile_lgbm  # noqa: F401
     from intelligence.optimiser.scheduler import CPSATScheduler  # noqa: F401
-    from intelligence.simulation.generator import BasicSimulationGenerator  # noqa: F401
-    from intelligence.simulation.models import SimulatedEV  # noqa: F401
+    from intelligence.simulation import generate_simulation  # noqa: F401
+    from intelligence.simulation.models import EV  # noqa: F401
