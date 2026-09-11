@@ -73,11 +73,15 @@ class ChargingRequest(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
+    vehicle_id: Mapped[int] = mapped_column(Integer, ForeignKey("vehicles.id"), nullable=True)
     arrival_time: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     departure_time: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     energy_required_kwh: Mapped[float] = mapped_column(Float, nullable=False)
     current_soc_pct: Mapped[float] = mapped_column(Float, nullable=False)
     target_soc_pct: Mapped[float] = mapped_column(Float, nullable=False)
+    connector_type: Mapped[str] = mapped_column(String(50), nullable=True)
+    max_power_kw: Mapped[float] = mapped_column(Float, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
 class Reservation(Base):
@@ -88,7 +92,8 @@ class Reservation(Base):
     charger_id: Mapped[int] = mapped_column(Integer, ForeignKey("chargers.id"), nullable=False)
     start_time: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     end_time: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    status: Mapped[str] = mapped_column(String(50), default="confirmed")
+    status: Mapped[str] = mapped_column(String(50), default="PENDING")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
 class ChargingSession(Base):

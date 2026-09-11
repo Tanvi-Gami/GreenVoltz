@@ -3,11 +3,14 @@
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from backend.app.api.v1.router import api_router
 from backend.app.config import get_settings
+from backend.app.database.session import get_db
 from backend.app.schemas.health import HealthResponse
 
 
@@ -50,6 +53,14 @@ def create_app() -> FastAPI:
             service="greenvoltz-backend",
             version="0.1.0",
         )
+
+    @app.get("/health/ready", response_model=HealthResponse, tags=["health"])
+    def root_ready(db: Session = Depends(get_db)) -> HealthResponse:
+        try:
+            db.execute(text("SELECT 1"))
+        except Exception:
+            raise HTTPException(status_code=503, detail="database_unavailable")
+        return HealthResponse(status="ready", service="greenvoltz-backend", version="0.1.0")
 
     # Include versioned API router
     app.include_router(api_router, prefix=settings.api_v1_prefix)
