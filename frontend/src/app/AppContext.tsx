@@ -8,6 +8,9 @@ interface AppContextValue {
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
+  mobileMenuOpen: boolean;
+  toggleMobileMenu: () => void;
+  closeMobileMenu: () => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -17,11 +20,15 @@ const AppContext = createContext<AppContextValue | null>(null);
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [networkStatus, setNetworkStatus] = useState<NetworkStatus>('online');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Auto-collapse sidebar at < 1280 px
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 1279px)');
-    const handler = (e: MediaQueryListEvent) => setSidebarCollapsed(e.matches);
+    const handler = (e: MediaQueryListEvent) => {
+      setSidebarCollapsed(e.matches);
+      if (!e.matches) setMobileMenuOpen(false);
+    };
     setSidebarCollapsed(mq.matches);
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
@@ -43,10 +50,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     () => setSidebarCollapsed(prev => !prev),
     [],
   );
+  const toggleMobileMenu = useCallback(() => setMobileMenuOpen(prev => !prev), []);
+  const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
 
   return (
     <AppContext.Provider
-      value={{ networkStatus, sidebarCollapsed, toggleSidebar, setSidebarCollapsed }}
+      value={{
+        networkStatus,
+        sidebarCollapsed,
+        toggleSidebar,
+        setSidebarCollapsed,
+        mobileMenuOpen,
+        toggleMobileMenu,
+        closeMobileMenu,
+      }}
     >
       {children}
     </AppContext.Provider>

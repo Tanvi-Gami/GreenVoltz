@@ -25,7 +25,6 @@ const suspend = (Page: React.ComponentType) => (
   </Suspense>
 );
 
-// eslint-disable-next-line react-refresh/only-export-components
 import type React from 'react';
 
 export const router = createBrowserRouter([
@@ -40,6 +39,7 @@ export const router = createBrowserRouter([
       { path: 'energy',           element: suspend(EnergyPage)       },
       { path: 'optimization',     element: suspend(OptimizationPage) },
       { path: 'disruption',       element: suspend(DisruptionPage)   },
+      { path: 'disruptions',      element: suspend(DisruptionPage)   },
       { path: 'analytics',        element: suspend(AnalyticsPage)    },
     ],
   },
