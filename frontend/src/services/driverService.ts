@@ -7,6 +7,49 @@ export interface VehicleStatus {
   chargingStatus: string;
 }
 
+export async function getDriverPageData(): Promise<DriverPageData> {
+  if (USE_MOCKS) return driverPageData;
+
+  const recommendation = await getDriverRecommendation({
+    vehicle_id: 1,
+    arrival_slot: 0,
+    departure_slot: 4,
+    energy_required_kwh: 20,
+    connector_type: 'Type2',
+    max_power_kw: 11,
+  });
+  return mapBackendRecommendationToDriverData(recommendation);
+}
+
+export function mapBackendRecommendationToDriverData(
+  recommendation: BackendChargingRecommendation,
+): DriverPageData {
+  const firstPlanItem = recommendation.charging_plan[0];
+  if (!firstPlanItem) {
+    throw new Error(`Backend optimizer returned no charging plan (${recommendation.solver_status}).`);
+  }
+
+  const mappedRecommendation: ChargingStationOption = {
+    ...driverPageData.recommendation,
+    id: `backend-station-${firstPlanItem.station_id}`,
+    name: `Station ${firstPlanItem.station_id}`,
+    availableChargers: 1,
+    totalChargers: 1,
+    chargingSpeedKw: firstPlanItem.power_kw,
+    renewablePercent: firstPlanItem.renewable_availability,
+    carbonKg: Number((recommendation.total_carbon / 1000).toFixed(1)),
+    cost: Math.round(recommendation.total_cost),
+    savings: Math.max(0, driverPageData.recommendation.cost - Math.round(recommendation.total_cost)),
+    explanation: 'Backend optimizer recommendation mapped from the current charging plan.',
+  };
+
+  return {
+    ...driverPageData,
+    recommendation: mappedRecommendation,
+    alternatives: driverPageData.alternatives,
+  };
+}
+
 export interface ChargingStationOption {
   id: string;
   name: string;
@@ -171,5 +214,5 @@ export function getDriverRecommendation(requestBody: BackendChargingRequest): Pr
     body: JSON.stringify(requestBody),
   });
 }
-import { request } from '@/services/apiClient';
+import { request, USE_MOCKS } from '@/services/apiClient';
 import type { BackendChargingRecommendation, BackendChargingRequest } from '@/services/backendContracts';
