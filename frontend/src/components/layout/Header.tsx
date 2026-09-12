@@ -7,9 +7,11 @@ import UserMenu from '@/components/navigation/UserMenu';
 import IconButton from '@/components/ui/IconButton';
 
 const contexts: Record<string, string> = {
-  '/': 'Overview',
+  '/': 'Account Login & Setup',
+  '/login': 'Account Login & Setup',
+  '/overview': 'Overview',
   '/driver': 'Find Charger',
-  '/operator': 'Charging',
+  '/operator': 'Station Operator Console',
   '/reservations': 'Reservations',
   '/energy': 'Energy Insights',
   '/optimization': 'Optimization',
@@ -18,7 +20,7 @@ const contexts: Record<string, string> = {
   '/analytics': 'Energy Insights',
 };
 
-export default function Header() {
+export default function Header({ hideMobileMenu }: { hideMobileMenu?: boolean }) {
   const { networkStatus } = useApp();
   const location = useLocation();
   const context = contexts[location.pathname] ?? 'GreenVoltz';
@@ -26,9 +28,11 @@ export default function Header() {
   return (
     <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b border-subtle bg-surface px-4 sm:px-6">
       <div className="flex min-w-0 items-center gap-3">
-        <div className="lg:hidden">
-          <MobileMenuButton />
-        </div>
+        {!hideMobileMenu && (
+          <div className="lg:hidden">
+            <MobileMenuButton />
+          </div>
+        )}
         <div className="min-w-0">
           <p className="type-technical truncate">GreenVoltz / {networkStatus}</p>
           <h1 className="truncate text-sm font-semibold text-primary sm:text-base">{context}</h1>

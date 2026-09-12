@@ -15,7 +15,7 @@ export default function NavItem({ to, icon: Icon, label, collapsed, badge, end }
       to={to}
       end={end}
       title={collapsed ? label : undefined}
-      className={({ isActive }) =>
+      className={({ isActive }: { isActive: boolean }) =>
         [
           'group relative flex items-center gap-3 rounded-lg px-3 py-2.5',
           'transition-all duration-150 focus-ring text-sm font-medium',
@@ -25,7 +25,7 @@ export default function NavItem({ to, icon: Icon, label, collapsed, badge, end }
         ].join(' ')
       }
     >
-      {({ isActive }) => (
+      {({ isActive }: { isActive: boolean }) => (
         <>
           {/* Active indicator bar */}
           {isActive && (

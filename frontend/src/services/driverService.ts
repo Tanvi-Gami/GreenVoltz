@@ -25,6 +25,13 @@ export interface ChargingStationOption {
   savings: number;
   carbonReductionPercent: number;
   explanation: string;
+  latitude?: number;
+  longitude?: number;
+  chargingDurationMinutes?: number;
+  totalTripMinutes?: number;
+  etaTime?: string;
+  timeOptimalScore?: number;
+  costOptimalScore?: number;
 }
 
 export interface ChargingWindow {
@@ -72,6 +79,8 @@ const centralHub: ChargingStationOption = {
   savings: 42,
   carbonReductionPercent: 31,
   explanation: recommendationExplanation,
+  latitude: 37.7749,
+  longitude: -122.4194,
 };
 
 export const driverPageData: DriverPageData = {
@@ -103,6 +112,8 @@ export const driverPageData: DriverPageData = {
       savings: 23,
       carbonReductionPercent: 17,
       explanation: recommendationExplanation,
+      latitude: 37.7600,
+      longitude: -122.4100,
     },
     {
       id: 'north',
@@ -122,6 +133,8 @@ export const driverPageData: DriverPageData = {
       savings: 0,
       carbonReductionPercent: 7,
       explanation: recommendationExplanation,
+      latitude: 37.8000,
+      longitude: -122.4200,
     },
     {
       id: 'west',
@@ -141,6 +154,8 @@ export const driverPageData: DriverPageData = {
       savings: 30,
       carbonReductionPercent: 39,
       explanation: recommendationExplanation,
+      latitude: 37.7500,
+      longitude: -122.4500,
     },
   ],
   windows: [

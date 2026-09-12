@@ -17,7 +17,7 @@ export default function NavigationItem({ to, label, icon: Icon, end, collapsed, 
       end={end}
       onClick={onNavigate}
       title={collapsed ? label : undefined}
-      className={({ isActive }) => [
+      className={({ isActive }: { isActive: boolean }) => [
         'group relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors',
         'focus-ring',
         collapsed ? 'justify-center' : '',
@@ -26,7 +26,7 @@ export default function NavigationItem({ to, label, icon: Icon, end, collapsed, 
           : 'text-secondary hover:bg-elevated hover:text-primary',
       ].join(' ')}
     >
-      {({ isActive }) => (
+      {({ isActive }: { isActive: boolean }) => (
         <>
           {isActive && <span className="absolute left-0 h-5 w-0.5 rounded-r bg-accent" />}
           <Icon className={`h-[18px] w-[18px] shrink-0 ${isActive ? 'text-accent' : ''}`} />
