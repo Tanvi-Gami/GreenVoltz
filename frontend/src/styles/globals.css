@@ -39,6 +39,7 @@
     padding: 0;
     background-color: rgb(var(--color-background));
     color: rgb(var(--color-text-primary));
+    overflow-x: hidden;
   }
 
   /* Scrollbar styling */

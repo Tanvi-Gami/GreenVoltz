@@ -26,7 +26,7 @@ export default function Header({ hideMobileMenu }: { hideMobileMenu?: boolean })
   const context = contexts[location.pathname] ?? 'GreenVoltz';
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b border-subtle bg-surface px-4 sm:px-6">
+    <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-subtle bg-surface px-3 sm:h-16 sm:gap-4 sm:px-6">
       <div className="flex min-w-0 items-center gap-3">
         {!hideMobileMenu && (
           <div className="lg:hidden">

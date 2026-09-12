@@ -9,6 +9,8 @@ export interface Coordinates {
 }
 
 export const CITY_PRESETS: Record<string, Coordinates> = {
+  'Gandhinagar, Gujarat': { latitude: 23.2156, longitude: 72.6369, label: 'Gandhinagar, Gujarat (Demo)' },
+  'DAU Campus, Gandhinagar': { latitude: 23.1686, longitude: 72.6369, label: 'DAU Campus, Gandhinagar (Demo)' },
   'San Francisco, CA': { latitude: 37.7749, longitude: -122.4194, label: 'San Francisco, CA' },
   'Palo Alto, CA': { latitude: 37.4419, longitude: -122.143, label: 'Palo Alto, CA' },
   'San Jose, CA': { latitude: 37.3382, longitude: -121.8863, label: 'San Jose, CA' },
@@ -93,4 +95,3 @@ export function isEtaInWindow(driveMinutes: number, windowStr: string): boolean 
     return true;
   }
 }
-

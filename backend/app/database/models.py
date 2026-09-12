@@ -59,6 +59,15 @@ class ChargingStation(Base):
     total_chargers: Mapped[int] = mapped_column(Integer, default=1)
 
 
+class StationWaitingList(Base):
+    __tablename__ = "station_waiting_lists"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    station_id: Mapped[int] = mapped_column(Integer, ForeignKey("charging_stations.id"), unique=True, nullable=False)
+    waiting_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class Charger(Base):
     __tablename__ = "chargers"
 
@@ -93,6 +102,17 @@ class Reservation(Base):
     start_time: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     end_time: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     status: Mapped[str] = mapped_column(String(50), default="PENDING")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class ReservationPayment(Base):
+    __tablename__ = "reservation_payments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    reservation_id: Mapped[int] = mapped_column(Integer, ForeignKey("reservations.id"), unique=True, nullable=False)
+    amount: Mapped[float] = mapped_column(Float, nullable=False)
+    payment_status: Mapped[str] = mapped_column(String(50), default="pending", nullable=False)
+    payment_reference: Mapped[str] = mapped_column(String(120), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 

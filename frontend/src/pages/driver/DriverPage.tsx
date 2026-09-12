@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import QRCode from 'react-qr-code';
 import { useAuth } from '@/context/AuthContext';
 import {
   AlertTriangle,
@@ -9,9 +10,7 @@ import {
   Car,
   Check,
   CheckCircle2,
-  ChevronRight,
   Clock3,
-  Cloud,
   Compass,
   CreditCard,
   DollarSign,
@@ -31,11 +30,10 @@ import {
 import Button from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
-import Divider from '@/components/ui/Divider';
 import { SectionHeader } from '@/components/ui/SectionHeader';
-import { driverPageData, getDriverPageData, type ChargingStationOption } from '@/services/driverService';
-import { addReservation, createLiveReservation } from '@/services/reservationService';
-import { USE_MOCKS } from '@/services/apiClient';
+import GoogleStationMap from '@/components/maps/GoogleStationMap';
+import { driverPageData, getBackendStations, getDriverPageData, type ChargingStationOption } from '@/services/driverService';
+import { addReservation, createBackendReservation, recordBackendDemoPayment } from '@/services/reservationService';
 import { Reservation } from '@/types/reservation';
 import {
   CITY_PRESETS,
@@ -46,6 +44,7 @@ import {
   isEtaInWindow,
   type Coordinates,
 } from '@/utils/location';
+import { openGoogleDirections } from '@/utils/maps';
 
 function BatteryLevel({ percent }: { percent: number }) {
   return (
@@ -128,6 +127,11 @@ function RecommendationCard({
             <DetailMetric label="Charging Speed" value={`${station.chargingSpeedKw} kW`} icon={Zap} />
             <DetailMetric label="Charging Window" value={station.window} icon={CalendarDays} />
           </div>
+          <div className="mt-4 flex flex-wrap gap-3 rounded-md border border-subtle bg-elevated/40 px-3 py-2 text-xs">
+            <span className="text-secondary">Available: <strong className="text-primary">{station.availableChargers}/{station.totalChargers}</strong></span>
+            <span className="text-secondary">Waiting: <strong className="text-primary">{station.waitingCount} vehicles</strong></span>
+            <span className="text-secondary">Price: <strong className="text-primary">₹{station.pricePerKwh}/kWh</strong></span>
+          </div>
 
           {/* Time & Window Match Banner */}
           <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-subtle bg-elevated/60 p-3 text-xs">
@@ -197,40 +201,15 @@ function RecommendationCard({
   );
 }
 
-function OptimalWindows() {
-  const { windows } = driverPageData;
+function OptimalWindows({ window }: { window: string }) {
   return (
     <Card>
-      <SectionHeader title="Best charging windows today" subtitle="GreenVoltz weighs price, carbon, renewable supply, and demand." />
-      <div className="mt-6 overflow-x-auto pb-2">
-        <div className="min-w-[680px]">
-          <div className="grid grid-cols-8 gap-2">
-            {windows.map(window => (
-              <div key={window.time} className="text-center">
-                <div className="mb-2 h-32 rounded-md border border-subtle bg-elevated/40 p-2">
-                  <div className="flex h-full items-end justify-center gap-1">
-                    <span className="w-1.5 rounded-t bg-accent/70" style={{ height: `${window.renewable}%` }} />
-                    <span className="w-1.5 rounded-t bg-cyan/70" style={{ height: `${window.price}%` }} />
-                    <span className="w-1.5 rounded-t bg-warning/70" style={{ height: `${window.carbon}%` }} />
-                    <span className="w-1.5 rounded-t bg-danger/60" style={{ height: `${window.demand}%` }} />
-                  </div>
-                </div>
-                <p className={`font-mono text-[11px] ${window.optimal ? 'font-semibold text-accent' : 'text-muted'}`}>{window.time}</p>
-                {window.optimal && <p className="mt-1 text-[10px] font-medium text-accent">Optimal</p>}
-              </div>
-            ))}
-          </div>
-          <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-xs text-secondary">
-            <span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-accent" /> Renewable availability</span>
-            <span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-cyan" /> Electricity price</span>
-            <span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-warning" /> Grid carbon</span>
-            <span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-danger" /> Charging demand</span>
-          </div>
-        </div>
-      </div>
-      <div className="mt-5 flex items-center gap-2 rounded-md border border-accent/25 bg-accent/5 px-4 py-3 text-sm font-medium text-accent">
+      <SectionHeader title="Best charging window" subtitle="AI recommendation based on renewable supply and price." />
+      <div className="mt-5 rounded-md border border-accent/25 bg-accent/5 px-4 py-4">
         <Clock3 className="h-4 w-4" />
-        14:30 – 15:15 — Optimal
+        <p className="mt-2 font-mono text-xl font-semibold text-primary">{window}</p>
+        <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-accent">Optimal</p>
+        <p className="mt-3 text-sm text-secondary">High renewable availability and lower electricity cost.</p>
       </div>
     </Card>
   );
@@ -245,9 +224,9 @@ export default function DriverPage() {
 
   // Dynamic location state (GPS or manual)
   const [userCoords, setUserCoords] = useState<Coordinates>({
-    latitude: 37.7749,
-    longitude: -122.4194,
-    label: 'San Francisco, CA (Default)',
+    latitude: 23.2156,
+    longitude: 72.6369,
+    label: 'Gandhinagar, Gujarat (Demo Reference)',
   });
   const [locationMode, setLocationMode] = useState<'preset' | 'gps' | 'manual'>('preset');
   const [customSearchText, setCustomSearchText] = useState('');
@@ -277,6 +256,8 @@ export default function DriverPage() {
 
   const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'upi' | 'card'>('wallet');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [paymentStep, setPaymentStep] = useState<'review' | 'payment'>('review');
+  const [backendReservationId, setBackendReservationId] = useState<number>();
   
   const [reservationSuccessModal, setReservationSuccessModal] = useState<{
     isOpen: boolean;
@@ -287,6 +268,12 @@ export default function DriverPage() {
   const handleDetectGps = () => {
     if (!navigator.geolocation) {
       setGpsError('Geolocation is not supported by your browser.');
+      setUserCoords({
+        latitude: 23.2156,
+        longitude: 72.6369,
+        label: 'Gandhinagar, Gujarat (Demo Reference)',
+      });
+      setLocationMode('preset');
       return;
     }
     setIsLocatingGps(true);
@@ -306,6 +293,12 @@ export default function DriverPage() {
       (err) => {
         setIsLocatingGps(false);
         setGpsError(err.message || 'GPS location permission denied or unavailable. Please choose a city below.');
+        setUserCoords({
+          latitude: 23.2156,
+          longitude: 72.6369,
+          label: 'Gandhinagar, Gujarat (Demo Reference)',
+        });
+        setLocationMode('preset');
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
@@ -402,6 +395,7 @@ export default function DriverPage() {
       : dynamicRecommendation;
 
   const selectedStation = allDynamicStations.find((s) => s.id === selectedId) ?? primaryRecommendation;
+  const nearestStation = [...allDynamicStations].sort((a, b) => a.distanceKm - b.distanceKm)[0] ?? selectedStation;
 
   // Reservation Trigger with 30km Limit Check
   const initiateReservation = (station: ChargingStationOption) => {
@@ -416,50 +410,87 @@ export default function DriverPage() {
         isOpen: true,
         station,
       });
+      setPaymentStep('review');
+      setBackendReservationId(undefined);
     }
   };
 
   const handleConfirmPrepayment = async () => {
     if (!prepaymentModal.station) return;
+    if (backendReservationId === undefined) {
+      setApiError('Reservation was not created by the backend. Please retry after the backend database is available.');
+      return;
+    }
+    setIsProcessingPayment(true);
+    await new Promise((resolve) => window.setTimeout(resolve, 1200));
+    const st = prepaymentModal.station;
+    let backendBookingId: number | undefined;
+
+    if (backendReservationId !== undefined) {
+      try {
+        await recordBackendDemoPayment(backendReservationId, 50);
+        backendBookingId = backendReservationId;
+      } catch (error: unknown) {
+        setIsProcessingPayment(false);
+        setApiError(error instanceof Error ? `Payment confirmation failed: ${error.message}` : 'Payment confirmation failed.');
+        return;
+      }
+    }
+
+    const newRes = addReservation({
+      stationId: st.id,
+      stationName: st.name,
+      chargerType: st.chargerType,
+      chargingSpeedKw: st.chargingSpeedKw,
+      vehicleName: activeVehicle.makeModel,
+      window: st.window,
+      date: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+      depositPaid: 50,
+      totalCost: st.cost,
+      energyKwh: energyNeeded,
+      distanceKm: st.distanceKm,
+    });
+
+    setIsProcessingPayment(false);
+    setPrepaymentModal({ isOpen: false, station: null });
+    setReserved(true);
+    setReservationSuccessModal({
+      isOpen: true,
+      reservation: backendBookingId ? { ...newRes, id: `res-${backendBookingId}` } : newRes,
+    });
+  };
+
+  const handleProceedToPayment = async () => {
+    const station = prepaymentModal.station;
+    if (!station || station.backendChargerId === undefined || station.backendRequestId === undefined) {
+      setApiError('This station is not connected to a backend charger/request. Reservation cannot continue until the database station data is available.');
+      return;
+    }
     setIsProcessingPayment(true);
     try {
-      const st = prepaymentModal.station!;
-      const liveReservation = !USE_MOCKS
-        ? await createLiveReservation({
-            requestId: st.backendRequestId ?? 1,
-            chargerId: st.backendChargerId ?? 1,
-            startTime: new Date().toISOString(),
-            endTime: new Date(
-              Date.now() + Math.max(30, st.chargingDurationMinutes ?? 30) * 60_000,
-            ).toISOString(),
-          })
-        : null;
-      const newRes = addReservation({
-        stationId: st.id,
-        stationName: st.name,
-        chargerType: st.chargerType,
-        chargingSpeedKw: st.chargingSpeedKw,
-        vehicleName: activeVehicle.makeModel,
-        window: st.window,
-        date: 'Today',
-        depositPaid: 50,
-        totalCost: st.cost,
-        energyKwh: energyNeeded,
-        distanceKm: st.distanceKm,
-      }, liveReservation ? String(liveReservation.id) : undefined);
-
-      setIsProcessingPayment(false);
-      setPrepaymentModal({ isOpen: false, station: null });
-      setReserved(true);
-      setReservationSuccessModal({
-        isOpen: true,
-        reservation: newRes,
+      const startTime = new Date();
+      const endTime = new Date(startTime.getTime() + (station.chargingDurationMinutes ?? 45) * 60_000);
+      const reservation = await createBackendReservation({
+        requestId: station.backendRequestId,
+        chargerId: station.backendChargerId,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
       });
-    } catch (error) {
-      setApiError(error instanceof Error ? error.message : 'Reservation failed. Please try again.');
+      setBackendReservationId(reservation.id);
+      setPaymentStep('payment');
+    } catch (error: unknown) {
+      setApiError(error instanceof Error ? `Reservation creation failed: ${error.message}` : 'Reservation creation failed.');
     } finally {
       setIsProcessingPayment(false);
     }
+  };
+
+  const navigateToStation = (station: ChargingStationOption) => {
+    if (station.latitude === undefined || station.longitude === undefined) return;
+    openGoogleDirections(
+      { latitude: station.latitude, longitude: station.longitude },
+      locationMode === 'gps' ? userCoords : undefined,
+    );
   };
 
   const selectStation = (id: string) => {
@@ -482,6 +513,35 @@ export default function DriverPage() {
       .catch(error => {
         if (active) setApiError(error instanceof Error ? error.message : 'Backend recommendation unavailable; showing demo data.');
       });
+    getBackendStations()
+      .then(stations => {
+        if (!active || stations.length === 0) return;
+        setPageData(previous => {
+          const updateWaitingCount = (station: ChargingStationOption): ChargingStationOption => {
+            const backendStation = stations.find(candidate =>
+              station.latitude !== undefined &&
+              station.longitude !== undefined &&
+              Math.abs(candidate.latitude - station.latitude) < 0.01 &&
+              Math.abs(candidate.longitude - station.longitude) < 0.01,
+            );
+            if (!backendStation) return station;
+            return {
+              ...station,
+              waitingCount: backendStation.waiting_count,
+              totalChargers: backendStation.total_chargers,
+              backendChargerId: backendStation.chargers[0]?.id,
+            };
+          };
+          return {
+            ...previous,
+            recommendation: updateWaitingCount(previous.recommendation),
+            alternatives: previous.alternatives.map(updateWaitingCount),
+          };
+        });
+      })
+      .catch(error => {
+        if (active) setApiError(error instanceof Error ? `Station availability unavailable: ${error.message}` : 'Station availability unavailable.');
+      });
     return () => {
       active = false;
     };
@@ -495,8 +555,13 @@ export default function DriverPage() {
           <div className="mb-2 flex items-center gap-2">
             <Badge variant="green" dot>AI recommendations active</Badge>
             <span className="text-xs font-semibold text-accent">• Welcome, {driverProfile.name}</span>
-            {apiError && <Badge variant="amber">Demo data · API unavailable</Badge>}
+            {apiError && <Badge variant="amber">Backend action required</Badge>}
           </div>
+          {apiError && (
+            <p role="alert" className="mt-3 max-w-2xl rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
+              {apiError}
+            </p>
+          )}
           <h1 className="type-h1">Find the best time and place to charge</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-secondary">
             Adjust your current battery level and target charge below to calculate real-time station recommendations for your {activeVehicle.makeModel}.
@@ -590,6 +655,15 @@ export default function DriverPage() {
           </div>
         )}
       </Card>
+
+      <GoogleStationMap
+        stations={allDynamicStations}
+        selectedStation={selectedStation}
+        nearestStation={nearestStation}
+        userCoords={userCoords}
+        userLocationIsLive={locationMode === 'gps'}
+        onSelect={selectStation}
+      />
 
       {/* Interactive Battery & Trip Control Card */}
       <Card className={isHighlighted ? 'border-accent/50 shadow-glow-green' : ''}>
@@ -887,37 +961,8 @@ export default function DriverPage() {
         reserved={reserved}
       />
 
-      <div>
-        <SectionHeader title="Alternative stations" subtitle="Compare nearby options against your current recommendation." />
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
-          {dynamicAlternatives.map(station => (
-            <button
-              type="button"
-              key={station.id}
-              onClick={() => selectStation(station.id)}
-              className={`text-left focus-ring ${selectedId === station.id ? 'rounded-xl ring-1 ring-accent' : ''}`}
-            >
-              <Card className="h-full hover:border-accent/50" padding="sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div><h3 className="font-semibold text-primary">{station.name}</h3><p className="mt-1 text-xs text-muted">{station.distanceKm} km away</p></div>
-                  <span className="font-mono text-sm font-semibold text-accent">{station.score}</span>
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
-                  <DetailMetric label="Available" value={`${station.availableChargers} / ${station.totalChargers}`} icon={Zap} />
-                  <DetailMetric label="Speed" value={`${station.chargingSpeedKw} kW`} icon={BatteryCharging} />
-                  <DetailMetric label="Renewable" value={`${station.renewablePercent}%`} icon={Leaf} />
-                  <DetailMetric label="CO₂" value={`${station.carbonKg} kg`} icon={Cloud} />
-                </div>
-                <Divider className="my-4" />
-                <div className="flex items-center justify-between text-xs"><span className="text-muted">Price</span><span className="font-medium text-primary">₹{station.pricePerKwh} / kWh</span><ChevronRight className="h-4 w-4 text-muted" /></div>
-              </Card>
-            </button>
-          ))}
-        </div>
-      </div>
-
       <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
-        <OptimalWindows />
+        <OptimalWindows window={selectedStation.window} />
         <Card>
           <SectionHeader title="Why wait 45 minutes?" subtitle="The value of timing your charge." />
           <div className="mt-5 space-y-4">
@@ -955,6 +1000,7 @@ export default function DriverPage() {
             <div className="mt-5 grid grid-cols-2 gap-4">
               <DetailMetric label="Distance" value={`${selectedStation.distanceKm} km`} icon={MapPin} />
               <DetailMetric label="Availability" value={`${selectedStation.availableChargers} / ${selectedStation.totalChargers}`} icon={Zap} />
+              <DetailMetric label="Waiting list" value={selectedStation.waitingCount ? `${selectedStation.waitingCount} vehicles` : 'No waiting vehicles'} icon={Clock3} />
               <DetailMetric label="Charger" value={`${selectedStation.chargerType} • ${selectedStation.chargingSpeedKw} kW`} icon={BatteryCharging} />
               <DetailMetric label="Renewable" value={`${selectedStation.renewablePercent}%`} icon={Leaf} />
             </div>
@@ -998,8 +1044,8 @@ export default function DriverPage() {
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="cyan">PREPAYMENT HOLD</Badge>
-                  <span className="text-xs text-muted">Step 2 of 2</span>
+                  <Badge variant="cyan">{paymentStep === 'review' ? 'CONFIRM PREBOOKING' : 'PAYMENT REQUIRED'}</Badge>
+                  <span className="text-xs text-muted">{paymentStep === 'review' ? 'Step 1 of 2' : 'Step 2 of 2'}</span>
                 </div>
                 <h2 className="mt-1 text-xl font-semibold text-primary">Reserve Charger at {prepaymentModal.station.name}</h2>
               </div>
@@ -1012,6 +1058,7 @@ export default function DriverPage() {
               <div className="flex justify-between"><span className="text-muted">Charging Window:</span><span className="font-semibold text-accent">{prepaymentModal.station.window}</span></div>
               <div className="flex justify-between"><span className="text-muted">Station Distance:</span><span className="font-semibold text-primary">{prepaymentModal.station.distanceKm} km ({prepaymentModal.station.arrivalMinutes} min drive)</span></div>
               <div className="flex justify-between"><span className="text-muted">Energy Requested:</span><span className="font-semibold text-primary">{energyNeeded} kWh</span></div>
+              <div className="flex justify-between"><span className="text-muted">Waiting List:</span><span className="font-semibold text-primary">{prepaymentModal.station.waitingCount ? `${prepaymentModal.station.waitingCount} vehicles` : 'No waiting vehicles'}</span></div>
               <div className="flex justify-between border-t border-subtle pt-2"><span className="text-muted">Est. Charging Fee:</span><span className="font-semibold text-primary">₹{prepaymentModal.station.cost}</span></div>
             </div>
 
@@ -1026,7 +1073,7 @@ export default function DriverPage() {
               </p>
             </div>
 
-            {/* Payment Method Selector */}
+            {paymentStep === 'review' ? (
             <div className="mt-4 space-y-2">
               <label className="text-xs font-semibold text-primary">Select Payment Method for ₹50 Hold:</label>
               <div className="grid grid-cols-3 gap-2">
@@ -1062,19 +1109,38 @@ export default function DriverPage() {
                 </button>
               </div>
             </div>
+              ) : (
+                <div className="mt-4 rounded-xl border border-accent/30 bg-accent/5 p-4 text-center">
+                  <p className="text-sm font-semibold text-primary">Scan to pay ₹50</p>
+                  <div className="mx-auto mt-4 w-fit rounded-lg bg-white p-3">
+                    <QRCode
+                      value={`GreenVoltz Demo Payment|Reservation: ${prepaymentModal.station.id}|Station: ${prepaymentModal.station.name}|Amount: 50`}
+                      size={176}
+                      level="M"
+                    />
+                  </div>
+                  <p className="mt-3 text-xs text-secondary">Demo payment only. No real financial transaction will occur.</p>
+                </div>
+              )}
 
             {/* Action buttons */}
             <div className="mt-6 flex items-center justify-end gap-3">
               <Button variant="secondary" onClick={() => setPrepaymentModal({ isOpen: false, station: null })}>
                 Cancel
               </Button>
-              <Button
-                leftIcon={isProcessingPayment ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-                onClick={handleConfirmPrepayment}
-                disabled={isProcessingPayment}
-              >
-                {isProcessingPayment ? 'Processing Hold...' : 'Pay ₹50 & Lock Charger'}
-              </Button>
+              {paymentStep === 'review' ? (
+                <Button leftIcon={<CreditCard className="h-4 w-4" />} onClick={handleProceedToPayment}>
+                  Proceed to Payment
+                </Button>
+              ) : (
+                <Button
+                  leftIcon={isProcessingPayment ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                  onClick={handleConfirmPrepayment}
+                  disabled={isProcessingPayment}
+                >
+                  {isProcessingPayment ? 'Confirming demo payment...' : "I've completed payment"}
+                </Button>
+              )}
             </div>
           </Card>
         </div>
@@ -1087,8 +1153,8 @@ export default function DriverPage() {
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success/15 text-success mb-3">
               <CheckCircle2 className="h-8 w-8" />
             </div>
-            <Badge variant="green">RESERVATION CONFIRMED</Badge>
-            <h2 className="mt-2 text-xl font-semibold text-primary">Charger Slot Locked!</h2>
+            <Badge variant="green">BOOKING CONFIRMED</Badge>
+            <h2 className="mt-2 text-xl font-semibold text-primary">Booking Confirmed</h2>
             <p className="mt-1 text-xs text-muted">₹50 prepayment deposit successfully held</p>
 
             {/* Pass Code Card */}
@@ -1107,6 +1173,13 @@ export default function DriverPage() {
             </div>
 
             <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
+              <Button
+                variant="secondary"
+                leftIcon={<Navigation className="h-4 w-4" />}
+                onClick={() => navigateToStation(selectedStation)}
+              >
+                Navigate to Station
+              </Button>
               <Button
                 variant="secondary"
                 onClick={() => setReservationSuccessModal({ isOpen: false, reservation: null })}

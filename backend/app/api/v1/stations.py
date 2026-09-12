@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from backend.app.database.models import Charger, ChargingStation
+from backend.app.database.models import Charger, ChargingStation, StationWaitingList
 from backend.app.database.session import get_db
 from backend.app.schemas.station import ChargerResponse, StationResponse
 
@@ -16,6 +16,7 @@ def list_stations(db: Session = Depends(get_db)):
     results = []
     for s in stations:
         chargers = db.query(Charger).filter(Charger.station_id == s.id).all()
+        waiting = db.query(StationWaitingList).filter(StationWaitingList.station_id == s.id).first()
         charger_resp = [
             ChargerResponse(
                 id=c.id,
@@ -32,6 +33,7 @@ def list_stations(db: Session = Depends(get_db)):
                 latitude=s.latitude,
                 longitude=s.longitude,
                 total_chargers=s.total_chargers,
+                waiting_count=waiting.waiting_count if waiting else 0,
                 chargers=charger_resp,
             )
         )
@@ -44,6 +46,7 @@ def get_station(station_id: int, db: Session = Depends(get_db)):
     if not s:
         raise HTTPException(status_code=404, detail="Station not found")
     chargers = db.query(Charger).filter(Charger.station_id == s.id).all()
+    waiting = db.query(StationWaitingList).filter(StationWaitingList.station_id == s.id).first()
     charger_resp = [
         ChargerResponse(
             id=c.id, station_id=c.station_id, connector_type=c.connector_type, max_power_kw=c.max_power_kw
@@ -56,6 +59,7 @@ def get_station(station_id: int, db: Session = Depends(get_db)):
         latitude=s.latitude,
         longitude=s.longitude,
         total_chargers=s.total_chargers,
+        waiting_count=waiting.waiting_count if waiting else 0,
         chargers=charger_resp,
     )
 
