@@ -26,7 +26,7 @@ def overview(db: Session = Depends(get_db)):
         db.query(func.coalesce(func.sum(OptimisationResult.total_cost), 0.0)).scalar() or 0.0
     )
     est_carbon = float(
-        db.query(func.coalesce(func.sum(OptimisationResult.total_carbon), 0.0)).scalar() or 0.0
+        db.query(func.coalesce(func.sum(OptimisationResult.total_carbon_gco2), 0.0)).scalar() or 0.0
     )
     renewable_used = 0.0
     return {
