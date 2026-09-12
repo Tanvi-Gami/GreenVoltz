@@ -1,6 +1,7 @@
 import time
 from typing import List
 
+from intelligence.adaptation.models import DisruptionType
 from intelligence.optimiser.scheduler import optimise
 from intelligence.simulation.models import (
     EV,
@@ -11,7 +12,6 @@ from intelligence.simulation.models import (
 from intelligence.simulation.models import (
     Charger as SimCharger,
 )
-from intelligence.adaptation.models import DisruptionType
 from intelligence.simulation.models import (
     ChargingRequest as SimRequest,
 )
@@ -62,7 +62,11 @@ def build_sim_for_replan(
             # if event marks this charger unavailable, enforce it
             if event is not None:
                 ev_type = getattr(event, "event_type", None)
-                if getattr(ev_type, "value", None) == DisruptionType.CHARGER_UNAVAILABLE.value and str(event.charger_id) == str(c.id):
+                charger_unavailable = (
+                    getattr(ev_type, "value", None) == DisruptionType.CHARGER_UNAVAILABLE.value
+                    and str(event.charger_id) == str(c.id)
+                )
+                if charger_unavailable:
                     status = "unavailable"
             # apply power reduction event
             if event:
@@ -152,7 +156,12 @@ def build_sim_for_replan(
 
 
 def replan_for_event(
-    db, affected_ev_ids: List[str], preserved_plan_items: List[dict], event=None, horizon_slots: int = 24, time_limit_seconds: int = 10
+    db,
+    affected_ev_ids: List[str],
+    preserved_plan_items: List[dict],
+    event=None,
+    horizon_slots: int = 24,
+    time_limit_seconds: int = 10,
 ):
     start = time.time()
     sim = build_sim_for_replan(db, affected_ev_ids, preserved_plan_items, event=event, horizon_slots=horizon_slots)
