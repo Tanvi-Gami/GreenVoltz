@@ -1,6 +1,22 @@
 import { Reservation } from '@/types/reservation';
 import { request, USE_MOCKS } from '@/services/apiClient';
 
+export interface BackendReservation {
+  id: number;
+  request_id: number;
+  charger_id: number;
+  start_time: string;
+  end_time: string;
+  status: string;
+}
+
+export interface BackendPayment {
+  reservation_id: number;
+  amount: number;
+  payment_status: string;
+  payment_reference?: string;
+}
+
 const INITIAL_RESERVATIONS: Reservation[] = [
   {
     id: 'res-101',
@@ -75,6 +91,44 @@ export function addReservation(
   };
   reservationsStore = [created, ...reservationsStore];
   return created;
+}
+
+export async function createBackendReservation(input: {
+  requestId: number;
+  chargerId: number;
+  startTime: string;
+  endTime: string;
+}): Promise<BackendReservation> {
+  if (USE_MOCKS) {
+    throw new Error('Backend reservation integration is disabled while VITE_USE_MOCKS=true.');
+  }
+
+  return request<BackendReservation>('/api/v1/reservations/', {
+    method: 'POST',
+    body: JSON.stringify({
+      request_id: input.requestId,
+      charger_id: input.chargerId,
+      start_time: input.startTime,
+      end_time: input.endTime,
+    }),
+  });
+}
+
+export async function recordBackendDemoPayment(
+  reservationId: number,
+  amount: number,
+): Promise<BackendPayment> {
+  if (USE_MOCKS) {
+    throw new Error('Backend payment integration is disabled while VITE_USE_MOCKS=true.');
+  }
+
+  return request<BackendPayment>(`/api/v1/reservations/${reservationId}/payment`, {
+    method: 'POST',
+    body: JSON.stringify({
+      amount,
+      payment_reference: `demo-${Date.now()}`,
+    }),
+  });
 }
 
 export function cancelReservation(id: string): boolean {

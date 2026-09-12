@@ -2,11 +2,42 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from backend.app.database.models import ReservationPayment
 from backend.app.database.session import get_db
+from backend.app.schemas.payment import PaymentCreate, PaymentResponse
 from backend.app.schemas.reservation import ReservationCreate, ReservationResponse
 from backend.app.services.reservations import cancel_reservation, create_reservation, get_reservation, list_reservations
 
 router = APIRouter(prefix="/reservations", tags=["reservations"])
+
+
+@router.post("/{reservation_id}/payment", response_model=PaymentResponse)
+def record_demo_payment(reservation_id: int, payload: PaymentCreate, db: Session = Depends(get_db)):
+    reservation = get_reservation(reservation_id, db)
+    if not reservation:
+        raise HTTPException(status_code=404, detail="Reservation not found")
+
+    payment = db.query(ReservationPayment).filter(ReservationPayment.reservation_id == reservation_id).first()
+    if payment:
+        payment.amount = payload.amount
+        payment.payment_status = "demo_paid"
+        payment.payment_reference = payload.payment_reference
+    else:
+        payment = ReservationPayment(
+            reservation_id=reservation_id,
+            amount=payload.amount,
+            payment_status="demo_paid",
+            payment_reference=payload.payment_reference,
+        )
+        db.add(payment)
+    reservation.status = "CONFIRMED"
+    db.commit()
+    return PaymentResponse(
+        reservation_id=reservation_id,
+        amount=payment.amount,
+        payment_status=payment.payment_status,
+        payment_reference=payment.payment_reference,
+    )
 
 
 @router.post("/", response_model=ReservationResponse)

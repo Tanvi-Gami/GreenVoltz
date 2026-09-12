@@ -17,7 +17,7 @@ import {
   TrendingUp,
   Zap,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/Badge';
@@ -133,7 +133,7 @@ function LivePortControl() {
                 <p className="text-xs text-secondary">Prevents grid sub-station overload by throttling port kW</p>
               </div>
             </div>
-            <button type="button" onClick={() => setLoadBalancing(prev => !prev)}
+            <button type="button" onClick={() => setLoadBalancing((prev: boolean) => !prev)}
               className={`relative h-6 w-11 rounded-full transition-colors focus-ring ${loadBalancing ? 'bg-accent' : 'bg-subtle'}`}>
               <span className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${loadBalancing ? 'translate-x-6' : 'translate-x-1'}`} />
             </button>
@@ -146,7 +146,7 @@ function LivePortControl() {
                 <p className="text-xs text-secondary">Prioritizes high-renewable windows automatically</p>
               </div>
             </div>
-            <button type="button" onClick={() => setSmartGridControl(prev => !prev)}
+            <button type="button" onClick={() => setSmartGridControl((prev: boolean) => !prev)}
               className={`relative h-6 w-11 rounded-full transition-colors focus-ring ${smartGridControl ? 'bg-accent' : 'bg-subtle'}`}>
               <span className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${smartGridControl ? 'translate-x-6' : 'translate-x-1'}`} />
             </button>
@@ -321,6 +321,7 @@ function CarbonCard() {
 }
 
 export default function OperatorPage() {
+  const { activeRole } = useAuth();
   const [lastUpdated, setLastUpdated] = useState('Just now');
   const [selectedStation, setSelectedStation] = useState<StationStatusRecord | null>(null);
   useEffect(() => {
@@ -368,6 +369,7 @@ export default function OperatorPage() {
     }).catch(() => setLastUpdated('API unavailable · demo data'));
   }, []);
   const refresh = () => setLastUpdated('A few seconds ago');
+  if (activeRole !== 'operator') return <Navigate to="/driver" replace />;
   return (
     <>
       <div className="mx-auto max-w-[1440px] space-y-6 animate-fade-in">

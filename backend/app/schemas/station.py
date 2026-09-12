@@ -16,4 +16,5 @@ class StationResponse(BaseModel):
     latitude: float
     longitude: float
     total_chargers: int
+    waiting_count: int = 0
     chargers: List[ChargerResponse] = []

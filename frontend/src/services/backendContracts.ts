@@ -11,6 +11,7 @@ export interface BackendStation {
   latitude: number;
   longitude: number;
   total_chargers: number;
+  waiting_count: number;
   chargers: BackendCharger[];
 }
 

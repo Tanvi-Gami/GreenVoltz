@@ -79,6 +79,8 @@ export interface ChargingStationOption {
   etaTime?: string;
   timeOptimalScore?: number;
   costOptimalScore?: number;
+  address?: string;
+  waitingCount: number;
 }
 
 export interface ChargingWindow {
@@ -126,8 +128,10 @@ const centralHub: ChargingStationOption = {
   savings: 42,
   carbonReductionPercent: 31,
   explanation: recommendationExplanation,
-  latitude: 37.7749,
-  longitude: -122.4194,
+  latitude: 23.2156,
+  longitude: 72.6369,
+  address: 'Infocity, Gandhinagar, Gujarat',
+  waitingCount: 2,
 };
 
 export const driverPageData: DriverPageData = {
@@ -159,8 +163,10 @@ export const driverPageData: DriverPageData = {
       savings: 23,
       carbonReductionPercent: 17,
       explanation: recommendationExplanation,
-      latitude: 37.7600,
-      longitude: -122.4100,
+      latitude: 23.2320,
+      longitude: 72.6500,
+      address: 'Kudasan, Gandhinagar, Gujarat',
+      waitingCount: 0,
     },
     {
       id: 'north',
@@ -180,8 +186,10 @@ export const driverPageData: DriverPageData = {
       savings: 0,
       carbonReductionPercent: 7,
       explanation: recommendationExplanation,
-      latitude: 37.8000,
-      longitude: -122.4200,
+      latitude: 23.1880,
+      longitude: 72.6200,
+      address: 'Sector 21, Gandhinagar, Gujarat',
+      waitingCount: 4,
     },
     {
       id: 'west',
@@ -201,8 +209,10 @@ export const driverPageData: DriverPageData = {
       savings: 30,
       carbonReductionPercent: 39,
       explanation: recommendationExplanation,
-      latitude: 37.7500,
-      longitude: -122.4500,
+      latitude: 23.2040,
+      longitude: 72.6040,
+      address: 'Sargasan, Gandhinagar, Gujarat',
+      waitingCount: 1,
     },
   ],
   windows: [
@@ -234,4 +244,9 @@ export function getDriverRecommendation(requestBody: BackendChargingRequest): Pr
   });
 }
 import { request, USE_MOCKS } from '@/services/apiClient';
-import type { BackendChargingRecommendation, BackendChargingRequest } from '@/services/backendContracts';
+import type { BackendChargingRecommendation, BackendChargingRequest, BackendStation } from '@/services/backendContracts';
+
+export async function getBackendStations(): Promise<BackendStation[]> {
+  if (USE_MOCKS) return [];
+  return request<BackendStation[]>('/api/v1/stations/');
+}
