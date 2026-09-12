@@ -15,7 +15,7 @@ export async function getDriverPageData(): Promise<DriverPageData> {
     arrival_slot: 0,
     departure_slot: 4,
     energy_required_kwh: 20,
-    connector_type: 'Type2',
+    connector_type: 'CCS',
     max_power_kw: 11,
   });
   return mapBackendRecommendationToDriverData(recommendation);
@@ -41,6 +41,8 @@ export function mapBackendRecommendationToDriverData(
     cost: Math.round(recommendation.total_cost),
     savings: Math.max(0, driverPageData.recommendation.cost - Math.round(recommendation.total_cost)),
     explanation: 'Backend optimizer recommendation mapped from the current charging plan.',
+    backendChargerId: Number(firstPlanItem.charger_id),
+    backendRequestId: 1,
   };
 
   return {
@@ -68,6 +70,8 @@ export interface ChargingStationOption {
   savings: number;
   carbonReductionPercent: number;
   explanation: string;
+  backendChargerId?: number;
+  backendRequestId?: number;
   latitude?: number;
   longitude?: number;
   chargingDurationMinutes?: number;

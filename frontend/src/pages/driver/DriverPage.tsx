@@ -34,7 +34,8 @@ import { Card } from '@/components/ui/Card';
 import Divider from '@/components/ui/Divider';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { driverPageData, getDriverPageData, type ChargingStationOption } from '@/services/driverService';
-import { addReservation } from '@/services/reservationService';
+import { addReservation, createLiveReservation } from '@/services/reservationService';
+import { USE_MOCKS } from '@/services/apiClient';
 import { Reservation } from '@/types/reservation';
 import {
   CITY_PRESETS,
@@ -418,12 +419,21 @@ export default function DriverPage() {
     }
   };
 
-  const handleConfirmPrepayment = () => {
+  const handleConfirmPrepayment = async () => {
     if (!prepaymentModal.station) return;
     setIsProcessingPayment(true);
-
-    setTimeout(() => {
+    try {
       const st = prepaymentModal.station!;
+      const liveReservation = !USE_MOCKS
+        ? await createLiveReservation({
+            requestId: st.backendRequestId ?? 1,
+            chargerId: st.backendChargerId ?? 1,
+            startTime: new Date().toISOString(),
+            endTime: new Date(
+              Date.now() + Math.max(30, st.chargingDurationMinutes ?? 30) * 60_000,
+            ).toISOString(),
+          })
+        : null;
       const newRes = addReservation({
         stationId: st.id,
         stationName: st.name,
@@ -436,7 +446,7 @@ export default function DriverPage() {
         totalCost: st.cost,
         energyKwh: energyNeeded,
         distanceKm: st.distanceKm,
-      });
+      }, liveReservation ? String(liveReservation.id) : undefined);
 
       setIsProcessingPayment(false);
       setPrepaymentModal({ isOpen: false, station: null });
@@ -445,7 +455,11 @@ export default function DriverPage() {
         isOpen: true,
         reservation: newRes,
       });
-    }, 1200);
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : 'Reservation failed. Please try again.');
+    } finally {
+      setIsProcessingPayment(false);
+    }
   };
 
   const selectStation = (id: string) => {

@@ -1,4 +1,5 @@
 import { Reservation } from '@/types/reservation';
+import { request, USE_MOCKS } from '@/services/apiClient';
 
 const INITIAL_RESERVATIONS: Reservation[] = [
   {
@@ -60,11 +61,14 @@ export function getReservations(): Reservation[] {
   return [...reservationsStore];
 }
 
-export function addReservation(newRes: Omit<Reservation, 'id' | 'createdAt' | 'status' | 'passCode'>): Reservation {
+export function addReservation(
+  newRes: Omit<Reservation, 'id' | 'createdAt' | 'status' | 'passCode'>,
+  persistedId?: string,
+): Reservation {
   const randomCode = `GV-${Math.floor(1000 + Math.random() * 9000)}`;
   const created: Reservation = {
     ...newRes,
-    id: `res-${Date.now()}`,
+    id: persistedId ?? `res-${Date.now()}`,
     status: 'ACTIVE',
     passCode: randomCode,
     createdAt: new Date().toISOString(),
@@ -82,5 +86,40 @@ export function cancelReservation(id: string): boolean {
     };
     return true;
   }
+
   return false;
 }
+
+export async function createLiveReservation(input: {
+    requestId: number;
+    chargerId: number;
+    startTime: string;
+    endTime: string;
+  }): Promise<{ id: number; request_id: number; charger_id: number; start_time: string; end_time: string; status: string }> {
+    if (USE_MOCKS) {
+      throw new Error('Live reservations require VITE_USE_MOCKS=false.');
+    }
+    return request('/api/v1/reservations/', {
+      method: 'POST',
+      body: JSON.stringify({
+        request_id: input.requestId,
+        charger_id: input.chargerId,
+        start_time: input.startTime,
+        end_time: input.endTime,
+      }),
+    });
+  }
+
+export function getLiveReservation(id: number) {
+    return request(`/api/v1/reservations/${id}`);
+  }
+
+export function cancelLiveReservation(id: number) {
+    return request(`/api/v1/reservations/${id}/cancel`, { method: 'POST' });
+  }
+
+  export function listLiveReservations() {
+    return request<Array<{ id: number; request_id: number; charger_id: number; start_time: string; end_time: string; status: string }>>(
+      '/api/v1/reservations/',
+    );
+  }

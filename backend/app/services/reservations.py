@@ -66,6 +66,10 @@ def get_reservation(reservation_id: int, db: Session) -> Optional[Reservation]:
     return db.get(Reservation, reservation_id)
 
 
+def list_reservations(db: Session) -> list[Reservation]:
+    return db.query(Reservation).order_by(Reservation.id).all()
+
+
 def cancel_reservation(reservation_id: int, db: Session) -> Reservation:
     r = db.get(Reservation, reservation_id)
     if not r:

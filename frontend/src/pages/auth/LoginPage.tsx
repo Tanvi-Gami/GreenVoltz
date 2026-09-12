@@ -189,7 +189,7 @@ export default function LoginPage() {
                       </label>
                       <select
                         value={connectorType}
-                        onChange={(e) => setConnectorType(e.target.value as any)}
+                        onChange={(e) => setConnectorType(e.target.value as 'CCS' | 'NACS' | 'Type 2' | 'CHAdeMO')}
                         className="w-full rounded-lg border border-subtle bg-elevated px-3.5 py-2 text-sm text-primary focus-ring focus:border-accent"
                       >
                         <option value="NACS">NACS (Tesla)</option>

@@ -39,6 +39,48 @@ export interface RecoveryAssignment {
   reason: string;
 }
 
+export function mapBackendAdaptation(
+  result: BackendAdaptationResult,
+  fallback: DisruptionData,
+): DisruptionData {
+  const affected = new Set(result.affected_ev_ids.map(String));
+  const assignmentsByEv = new Map<string, RecoveryAssignment>();
+  result.new_charging_plan.forEach((item, index) => {
+    const ev = String(item.ev_id ?? result.affected_ev_ids[index] ?? 'unknown');
+    const previous = fallback.sessions.find(session => session.id === ev);
+    assignmentsByEv.set(ev, {
+      sessionId: ev,
+      ev: previous?.ev ?? `EV ${ev}`,
+      from: previous?.charger ?? 'Unavailable charger',
+      to: `Station ${item.station_id ?? 'unknown'}`,
+      charger: `Charger ${item.charger_id ?? 'unknown'}`,
+      window: `Slot ${item.time_slot ?? '—'}`,
+      delay: 'Backend validated',
+      cost: 'Backend calculated',
+      reason: 'Assignment returned by the constraint-aware backend replanner.',
+    });
+  });
+  const assignments = [...assignmentsByEv.values()].filter(item => affected.has(item.sessionId));
+  return {
+    ...fallback,
+    disruption: {
+      ...fallback.disruption,
+      affectedCount: result.affected_ev_ids.length,
+      status: result.status,
+    },
+    recovery: assignments,
+    impact: result.before_cost !== undefined
+      ? {
+          beforeCost: result.before_cost,
+          afterCost: result.after_cost ?? result.before_cost,
+          beforeCarbon: result.before_carbon ?? 0,
+          afterCarbon: result.after_carbon ?? 0,
+          delayMinutes: result.delay_minutes ?? 0,
+        }
+      : fallback.impact,
+  };
+}
+
 export interface DisruptionHistoryItem {
   type: string;
   location: string;
@@ -51,6 +93,13 @@ export interface DisruptionData {
   alternatives: AlternativeStation[];
   recovery: RecoveryAssignment[];
   history: DisruptionHistoryItem[];
+  impact?: {
+    beforeCost: number;
+    afterCost: number;
+    beforeCarbon: number;
+    afterCarbon: number;
+    delayMinutes: number;
+  };
 }
 
 const data: DisruptionData = {
@@ -97,6 +146,13 @@ export function runReplanning(): Promise<DisruptionData> {
 
 export function submitBackendDisruption(event: BackendDisruptionEvent): Promise<BackendAdaptationResult> {
   return request<BackendAdaptationResult>('/api/v1/adaptation/replan', {
+    method: 'POST',
+    body: JSON.stringify(event),
+  });
+}
+
+export function submitBackendEvent(event: BackendDisruptionEvent): Promise<BackendAdaptationResult> {
+  return request<BackendAdaptationResult>('/api/v1/adaptation/events', {
     method: 'POST',
     body: JSON.stringify(event),
   });

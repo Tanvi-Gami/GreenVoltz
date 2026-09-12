@@ -130,5 +130,11 @@ export function runBackendOptimization(requestBody: BackendChargingRequest): Pro
     body: JSON.stringify(requestBody),
   });
 }
+
+export function getBackendOptimizationRun() {
+  return request<import('@/services/backendContracts').BackendOptimizationRun>('/api/v1/optimization/run', {
+    method: 'POST',
+  });
+}
 import { request } from '@/services/apiClient';
 import type { BackendChargingRecommendation, BackendChargingRequest } from '@/services/backendContracts';

@@ -22,9 +22,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Auto-collapse sidebar at < 1280 px
+  // Keep the mobile drawer readable; only compact the sidebar at tablet/desktop widths.
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 1279px)');
+    const mq = window.matchMedia('(min-width: 1024px) and (max-width: 1279px)');
     const handler = (e: MediaQueryListEvent) => {
       setSidebarCollapsed(e.matches);
       if (!e.matches) setMobileMenuOpen(false);

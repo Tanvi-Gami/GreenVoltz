@@ -112,5 +112,14 @@ export async function getBackendNetworkInputs(): Promise<{
   ]);
   return { stations, analytics };
 }
+
+export async function getBackendOperatorData() {
+  const [{ stations, analytics }, sessions, signals] = await Promise.all([
+    getBackendNetworkInputs(),
+    request<import('@/services/backendContracts').BackendActiveSession[]>('/api/v1/charging/sessions/active'),
+    request<import('@/services/backendContracts').BackendSignalPoint[]>('/api/v1/analytics/signals'),
+  ]);
+  return { stations, analytics, sessions, signals };
+}
 import { request } from '@/services/apiClient';
 import type { BackendAnalyticsOverview, BackendStation } from '@/services/backendContracts';

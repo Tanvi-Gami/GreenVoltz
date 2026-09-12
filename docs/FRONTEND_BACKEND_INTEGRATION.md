@@ -27,10 +27,13 @@ errors. `api.ts` re-exports it for compatibility with existing endpoint code.
 | `/api/v1/stations/{station_id}` | GET | Get one station and chargers | Path integer ID | `StationResponse` | No page adapter yet | **IMPLEMENTED** |
 | `/api/v1/stations/{station_id}/chargers` | GET | List station chargers | Path integer ID | `ChargerResponse[]` | No page adapter yet | **IMPLEMENTED** |
 | `/api/v1/charging/recommend` | POST | Generate an optimized charging recommendation | `ChargingRequestCreate` | `ChargingRecommendation` | `driverService.getDriverPageData`, `driverService.getDriverRecommendation`, `optimizationService.runBackendOptimization` | **IMPLEMENTED + VERIFIED** for the raw Driver recommendation path |
+| `/api/v1/charging/sessions/active` | GET | List active database charging sessions | None | `ActiveSessionResponse[]` | `operatorService.getBackendOperatorData` | **IMPLEMENTED + VERIFIED** |
 | `/api/v1/reservations/` | POST | Create a reservation | `ReservationCreate` | `ReservationResponse` | No adapter yet | **IMPLEMENTED** |
 | `/api/v1/reservations/{reservation_id}` | GET | Read a reservation | Path integer ID | `ReservationResponse` | No adapter yet | **IMPLEMENTED** |
 | `/api/v1/reservations/{reservation_id}/cancel` | POST | Cancel a reservation | Path integer ID | `ReservationResponse` | No adapter yet | **IMPLEMENTED** |
 | `/api/v1/analytics/overview` | GET | Aggregate request, reservation, energy, cost, and carbon values | None | `AnalyticsOverview` object | `operatorService.getBackendNetworkInputs` | **PARTIALLY IMPLEMENTED** |
+| `/api/v1/analytics/signals` | GET | Demand, renewable, carbon, and tariff time series | None | `SignalPoint[]` | `operatorService.getBackendOperatorData` | **IMPLEMENTED + VERIFIED** |
+| `/api/v1/optimization/run` | POST | Run/read the persisted optimization result | None | `OptimizationRunResponse` | `optimizationService.getBackendOptimizationRun` | **IMPLEMENTED + VERIFIED** |
 | `/api/v1/adaptation/events` | POST | Submit a disruption event and adapt the plan | `DisruptionEvent` | `AdaptationResultResponse` | No adapter yet | **IMPLEMENTED** |
 | `/api/v1/adaptation/replan` | POST | Submit a disruption event for replanning | `DisruptionEvent` | `AdaptationResultResponse` | `disruptionService.submitBackendDisruption` | **PARTIALLY IMPLEMENTED** |
 | `/api/v1/adaptation/{adaptation_id}` | GET | Retrieve a persisted adaptation result | Path integer ID | Stored adaptation JSON/result | No adapter yet | **IMPLEMENTED** |
@@ -105,6 +108,9 @@ created by `scripts/seed_demo.py --reset`:
 | Analytics | `/api/v1/analytics/overview` | **YES** (200; aggregate object) | Partial | Aggregate values are connected to the raw Operator adapter. |
 | Adaptation | `/api/v1/adaptation/events`, `/replan`, `/{adaptation_id}` | **YES** (200) | Raw adapter only | Full Disruptions presentation remains mock-driven. |
 | OpenAPI contract | `/openapi.json` | **YES** (200) | No | Confirmed all documented routes are present. |
+| Active sessions | `GET /api/v1/charging/sessions/active` | **YES** (seeded DB) | **YES** | Operator maps session, battery, power, and completion data. |
+| Energy signals | `GET /api/v1/analytics/signals` | **YES** (seeded DB) | **YES** | Operator consumes demand, renewable, carbon, and tariff points. |
+| Optimization run | `POST /api/v1/optimization/run` | **YES** (seeded DB) | **YES** | Optimization page consumes backend totals and savings. |
 
 ## Error/loading/empty behavior
 

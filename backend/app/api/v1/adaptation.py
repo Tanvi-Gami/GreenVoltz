@@ -16,6 +16,7 @@ def post_event(payload: DisruptionSchema, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     return AdaptationResultResponse(**{
+        "adaptation_id": res.id,
         "status": res.status,
         "affected_ev_ids": res.affected_ev_ids,
         "preserved_plan_items": res.preserved_plan_items,
@@ -26,6 +27,11 @@ def post_event(payload: DisruptionSchema, db: Session = Depends(get_db)):
         "unscheduled_ev_ids": res.unscheduled_ev_ids,
         "schedule_changes": res.schedule_changes,
         "runtime_seconds": res.runtime_seconds,
+        "before_cost": res.metadata.get("before_cost"),
+        "after_cost": res.metadata.get("after_cost"),
+        "before_carbon": res.metadata.get("before_carbon"),
+        "after_carbon": res.metadata.get("after_carbon"),
+        "delay_minutes": res.metadata.get("delay_minutes"),
     })
 
 
@@ -36,6 +42,7 @@ def post_replan(payload: DisruptionSchema, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     return AdaptationResultResponse(**{
+        "adaptation_id": res.id,
         "status": res.status,
         "affected_ev_ids": res.affected_ev_ids,
         "preserved_plan_items": res.preserved_plan_items,
@@ -46,6 +53,11 @@ def post_replan(payload: DisruptionSchema, db: Session = Depends(get_db)):
         "unscheduled_ev_ids": res.unscheduled_ev_ids,
         "schedule_changes": res.schedule_changes,
         "runtime_seconds": res.runtime_seconds,
+        "before_cost": res.metadata.get("before_cost"),
+        "after_cost": res.metadata.get("after_cost"),
+        "before_carbon": res.metadata.get("before_carbon"),
+        "after_carbon": res.metadata.get("after_carbon"),
+        "delay_minutes": res.metadata.get("delay_minutes"),
     })
 
 

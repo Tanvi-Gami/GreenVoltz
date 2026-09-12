@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.database.session import get_db
 from backend.app.schemas.reservation import ReservationCreate, ReservationResponse
-from backend.app.services.reservations import cancel_reservation, create_reservation, get_reservation
+from backend.app.services.reservations import cancel_reservation, create_reservation, get_reservation, list_reservations
 
 router = APIRouter(prefix="/reservations", tags=["reservations"])
 
@@ -36,6 +36,21 @@ def create_reservation_endpoint(payload: ReservationCreate, db: Session = Depend
         end_time=r.end_time,
         status=r.status,
     )
+
+
+@router.get("/", response_model=list[ReservationResponse])
+def list_reservations_endpoint(db: Session = Depends(get_db)):
+    return [
+        ReservationResponse(
+            id=r.id,
+            request_id=r.request_id,
+            charger_id=r.charger_id,
+            start_time=r.start_time,
+            end_time=r.end_time,
+            status=r.status,
+        )
+        for r in list_reservations(db)
+    ]
 
 
 @router.get("/{reservation_id}", response_model=ReservationResponse)

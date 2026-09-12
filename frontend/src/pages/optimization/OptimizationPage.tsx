@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -25,11 +25,13 @@ import StatusIndicator from '@/components/ui/StatusIndicator';
 import {
   getOptimizationData,
   runOptimization,
+  getBackendOptimizationRun,
   type ComparisonMetric,
   type OptimizationData,
   type OptimizationDecision,
   type ScheduleSession,
 } from '@/services/optimizationService';
+import { USE_MOCKS } from '@/services/apiClient';
 
 function Stat({ label, value, icon: Icon, tone = 'accent' }: { label: string; value: string | number; icon: typeof Zap; tone?: 'accent' | 'success' | 'cyan' }) {
   const colors = { accent: 'bg-accent/10 text-accent', success: 'bg-success/10 text-success', cyan: 'bg-cyan/10 text-cyan' };
@@ -144,10 +146,39 @@ export default function OptimizationPage() {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [lastOptimized, setLastOptimized] = useState('Just now');
   const [selectedSession, setSelectedSession] = useState<ScheduleSession | null>(null);
+  useEffect(() => {
+    if (USE_MOCKS) return;
+    getBackendOptimizationRun().then(result => {
+      setData(current => ({
+        ...current,
+        summary: {
+          ...current.summary,
+          sessionsOptimized: result.optimized_charging_sessions.length,
+          savings: `₹${result.total_savings.toFixed(0)}`,
+          carbonAvoided: `${(result.carbon_reduction / 1000).toFixed(1)} kg`,
+        },
+        comparison: current.comparison.map(metric =>
+          metric.label === 'Charging cost'
+            ? { ...metric, current: `₹${result.before_cost.toFixed(0)}`, optimized: `₹${result.after_cost.toFixed(0)}` }
+            : metric.label === 'CO₂ emissions'
+            ? { ...metric, current: `${(result.before_carbon / 1000).toFixed(1)} kg`, optimized: `${(result.after_carbon / 1000).toFixed(1)} kg` }
+            : metric,
+        ),
+      }));
+    }).catch(() => undefined);
+  }, []);
 
   const handleOptimize = async () => {
     setIsOptimizing(true);
-    const result = await runOptimization();
+    const result = USE_MOCKS ? await runOptimization() : await getBackendOptimizationRun().then(backend => ({
+      ...getOptimizationData(),
+      summary: {
+        ...getOptimizationData().summary,
+        sessionsOptimized: backend.optimized_charging_sessions.length,
+        savings: `₹${backend.total_savings.toFixed(0)}`,
+        carbonAvoided: `${(backend.carbon_reduction / 1000).toFixed(1)} kg`,
+      },
+    }));
     setData(result);
     setLastOptimized('Just now');
     setIsOptimizing(false);
@@ -157,8 +188,9 @@ export default function OptimizationPage() {
     <div className="space-y-6 pb-8 animate-fade-in">
       <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
         <div><div className="mb-3 flex flex-wrap items-center gap-3"><StatusIndicator label="Optimizer active" /><span className="text-xs text-muted">Last optimized: {lastOptimized}</span></div><h1 className="text-2xl font-semibold tracking-tight text-primary sm:text-3xl">AI Charging Optimization</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-secondary">GreenVoltz continuously adjusts charging schedules to reduce cost and carbon emissions while meeting driver requirements.</p></div>
-        <div className="flex flex-wrap gap-2"><Button variant="secondary" leftIcon={<Network className="h-4 w-4" />} onClick={() => navigate('/operator')}>View network</Button><Button loading={isOptimizing} leftIcon={<RefreshCw className="h-4 w-4" />} onClick={handleOptimize}>{isOptimizing ? 'Optimizing...' : 'Run optimization'}</Button></div>
+        <div className="flex flex-wrap gap-2"><Button variant="secondary" leftIcon={<Network className="h-4 w-4" />} onClick={() => navigate('/operator')}>View network</Button><Button loading={isOptimizing} leftIcon={<RefreshCw className="h-4 w-4" />} onClick={handleOptimize}>{isOptimizing ? 'Loading...' : USE_MOCKS ? 'Run optimization' : 'Reload seeded result'}</Button></div>
       </div>
+      {!USE_MOCKS && <p className="border border-warning/25 bg-warning/5 px-4 py-3 text-xs text-secondary">Live mode is showing the persisted seeded optimization result from the backend. This demo endpoint does not execute a fresh optimizer run.</p>}
 
       <Card className="border-accent/30 bg-gradient-to-r from-accent/10 via-bg-surface to-bg-surface" padding="md">
         <div className="flex items-start gap-3"><Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-accent" /><div><p className="text-sm font-semibold text-primary">GreenVoltz found {data.summary.savings} in potential savings across {data.summary.sessionsOptimized} sessions without violating driver departure requirements.</p><p className="mt-1 text-xs text-secondary">Driver constraints + charger availability + tariff + renewable energy + grid carbon = an optimized charging schedule.</p></div></div>
