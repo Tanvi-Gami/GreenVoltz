@@ -41,7 +41,9 @@ class Settings(BaseSettings):
     postgres_db: str = "greenvoltz_db"
     postgres_host: str = "localhost"
     postgres_port: int = 5432
-    database_url: str = "postgresql://greenvoltz:greenvoltz_secret@localhost:5432/greenvoltz_db"
+    database_url: str = (
+        "postgresql://greenvoltz:greenvoltz_secret@localhost:5432/greenvoltz_db"
+    )
 
     # Storage paths
     artifact_storage_path: str = "./saved_models"

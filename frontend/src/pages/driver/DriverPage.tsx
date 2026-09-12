@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   BatteryCharging,
   CalendarDays,
@@ -19,7 +19,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import Divider from '@/components/ui/Divider';
 import { SectionHeader } from '@/components/ui/SectionHeader';
-import { driverPageData, type ChargingStationOption } from '@/services/driverService';
+import { driverPageData, getDriverPageData, type ChargingStationOption } from '@/services/driverService';
 
 function BatteryLevel({ percent }: { percent: number }) {
   return (
@@ -176,7 +176,9 @@ function OptimalWindows() {
 }
 
 export default function DriverPage() {
-  const { vehicle, recommendation, alternatives, recentSessions } = driverPageData;
+  const [pageData, setPageData] = useState(driverPageData);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const { vehicle, recommendation, alternatives, recentSessions } = pageData;
   const [selectedId, setSelectedId] = useState(recommendation.id);
   const [reserved, setReserved] = useState(false);
   const [isHighlighted, setIsHighlighted] = useState(false);
@@ -194,6 +196,20 @@ export default function DriverPage() {
     setReserved(false);
   };
 
+  useEffect(() => {
+    let active = true;
+    getDriverPageData()
+      .then(nextData => {
+        if (active) setPageData(nextData);
+      })
+      .catch(error => {
+        if (active) setApiError(error instanceof Error ? error.message : 'Backend recommendation unavailable; showing demo data.');
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <>
       <div className="mx-auto max-w-[1440px] space-y-6 animate-fade-in">
@@ -201,6 +217,7 @@ export default function DriverPage() {
         <div>
           <div className="mb-2 flex items-center gap-2">
             <Badge variant="green" dot>AI recommendations active</Badge>
+            {apiError && <Badge variant="amber">Demo data · API unavailable</Badge>}
           </div>
           <h1 className="type-h1">Find the best time and place to charge</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-secondary">
