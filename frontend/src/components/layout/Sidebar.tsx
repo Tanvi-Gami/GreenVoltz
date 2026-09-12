@@ -1,92 +1,82 @@
 import {
-  BarChart3,
-  Bolt,
-  Car,
-  ChevronLeft,
-  ChevronRight,
-  CircleAlert,
-  CalendarCheck,
+  Activity,
+  BatteryCharging,
+  CalendarClock,
+  Gauge,
   LayoutDashboard,
-  Settings,
-  Sliders,
+  MapPin,
+  Network,
+  Settings2,
   Zap,
 } from 'lucide-react';
 import { useApp } from '@/app/AppContext';
-import NavItem from '@/components/navigation/NavItem';
+import Divider from '@/components/ui/Divider';
+import NavigationItem from '@/components/navigation/NavigationItem';
+import NetworkStatus from '@/components/navigation/NetworkStatus';
+import UserMenu from '@/components/navigation/UserMenu';
 
-const NAV_ITEMS = [
-  { to: '/',            icon: LayoutDashboard, label: 'Home',         end: true  },
-  { to: '/driver',      icon: Car,             label: 'Driver'                   },
-  { to: '/operator',    icon: Bolt,            label: 'Operator'                 },
-  { to: '/reservations',icon: CalendarCheck,   label: 'Reservations'             },
-  { to: '/energy',      icon: Zap,             label: 'Energy'                   },
-  { to: '/optimization',icon: Sliders,         label: 'Optimisation'             },
-  { to: '/disruption',  icon: CircleAlert,     label: 'Disruptions'              },
-  { to: '/analytics',   icon: BarChart3,       label: 'Analytics'                },
+const primaryItems = [
+  { to: '/driver', label: 'Find Charger', icon: MapPin },
+  { to: '/operator', label: 'Charging', icon: BatteryCharging },
+  { to: '/reservations', label: 'Reservations', icon: CalendarClock },
+  { to: '/energy', label: 'Energy Insights', icon: Activity },
+];
+
+const optimizationItems = [
+  { to: '/optimization', label: 'Optimization', icon: Gauge },
+  { to: '/disruptions', label: 'Disruptions', icon: Network },
 ];
 
 export default function Sidebar() {
-  const { sidebarCollapsed, toggleSidebar } = useApp();
+  const { sidebarCollapsed, mobileMenuOpen, closeMobileMenu } = useApp();
+  const closeOnMobile = () => closeMobileMenu();
 
   return (
     <aside
       className={[
-        'relative flex flex-col h-full bg-bg-surface border-r border-bg-border',
-        'transition-all duration-300 ease-in-out overflow-hidden',
-        sidebarCollapsed ? 'w-16' : 'w-60',
+        'fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-subtle bg-sidebar',
+        'transition-transform duration-200 lg:relative lg:translate-x-0',
+        mobileMenuOpen ? 'translate-x-0' : '-translate-x-full',
+        sidebarCollapsed ? 'lg:w-20' : 'lg:w-64',
       ].join(' ')}
     >
-      {/* Logo area */}
-      <div className="flex items-center h-14 px-3 border-b border-bg-border shrink-0 gap-2 overflow-hidden">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent-green/15">
-          <Zap className="h-5 w-5 text-accent-green" />
-        </div>
+      <div className="flex h-16 shrink-0 items-center gap-3 border-b border-subtle px-5">
+        <span className="flex h-8 w-8 items-center justify-center rounded-md bg-accent/15 text-accent">
+          <Zap className="h-4 w-4" />
+        </span>
         {!sidebarCollapsed && (
-          <span className="text-sm font-bold tracking-wide text-text-primary whitespace-nowrap animate-fade-in">
-            Green<span className="text-accent-green">Voltz</span>
+          <span className="text-sm font-semibold tracking-wide text-primary">
+            Green<span className="text-accent">Voltz</span>
           </span>
         )}
       </div>
 
-      {/* Navigation links */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-3 space-y-0.5">
-        {NAV_ITEMS.map(item => (
-          <NavItem
-            key={item.to}
-            to={item.to}
-            icon={item.icon}
-            label={item.label}
-            collapsed={sidebarCollapsed}
-            end={item.end}
-          />
+      <nav className="flex-1 overflow-y-auto px-3 py-5">
+        {!sidebarCollapsed && <p className="type-technical mb-2 px-3">Overview</p>}
+        <NavigationItem to="/" label="Overview" icon={LayoutDashboard} end collapsed={sidebarCollapsed} onNavigate={closeOnMobile} />
+        {primaryItems.map(item => (
+          <NavigationItem key={item.to} {...item} collapsed={sidebarCollapsed} onNavigate={closeOnMobile} />
+        ))}
+
+        <Divider className="my-5" />
+        {!sidebarCollapsed && <p className="type-technical mb-2 px-3">Optimization</p>}
+        {optimizationItems.map(item => (
+          <NavigationItem key={item.to} {...item} collapsed={sidebarCollapsed} onNavigate={closeOnMobile} />
         ))}
       </nav>
 
-      {/* Bottom section */}
-      <div className="shrink-0 px-2 py-3 border-t border-bg-border space-y-0.5">
-        <NavItem
-          to="/settings"
-          icon={Settings}
-          label="Settings"
-          collapsed={sidebarCollapsed}
-        />
+      <div className="shrink-0 space-y-4 border-t border-subtle px-4 py-4">
+        {!sidebarCollapsed && <NetworkStatus />}
+        <div className={sidebarCollapsed ? 'flex justify-center' : ''}>
+          <UserMenu />
+        </div>
+        {!sidebarCollapsed && (
+          <div className="flex items-center gap-2 text-[11px] text-muted">
+            <Settings2 className="h-3.5 w-3.5" />
+            <span>GreenVoltz control plane</span>
+          </div>
+        )}
       </div>
-
-      {/* Collapse toggle button */}
-      <button
-        onClick={toggleSidebar}
-        aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        className={[
-          'absolute -right-3 top-16 z-10 flex h-6 w-6 items-center justify-center',
-          'rounded-full bg-bg-raised border border-bg-border text-text-secondary',
-          'hover:border-accent-green hover:text-accent-green transition-all duration-150',
-          'focus-ring shadow-md',
-        ].join(' ')}
-      >
-        {sidebarCollapsed
-          ? <ChevronRight className="h-3.5 w-3.5" />
-          : <ChevronLeft  className="h-3.5 w-3.5" />}
-      </button>
     </aside>
   );
 }

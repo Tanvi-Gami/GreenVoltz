@@ -76,3 +76,14 @@ saved_models/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Frontend dependencies and generated output
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.env.local
+frontend/.env.*.local
+frontend/*.tsbuildinfo
+
+# Local SQLite databases
+*.db

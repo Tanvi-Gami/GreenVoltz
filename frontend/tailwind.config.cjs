@@ -5,55 +5,51 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Background palette
-        'bg-base':    '#0a0e14',   // near-black, main background
-        'bg-surface': '#111827',   // slightly lighter, card/panel surface
-        'bg-raised':  '#1f2937',   // hover / elevated surface
-        'bg-border':  '#374151',   // subtle borders
-
-        // Brand
-        'accent-green': {
-          DEFAULT: '#22d3a5',      // electric teal-green — primary actions
-          light:   '#5eead4',
-          dark:    '#0f9d7a',
+        background: 'rgb(var(--color-background) / <alpha-value>)',
+        sidebar: 'rgb(var(--color-sidebar) / <alpha-value>)',
+        surface: 'rgb(var(--color-surface) / <alpha-value>)',
+        elevated: 'rgb(var(--color-elevated) / <alpha-value>)',
+        primary: 'rgb(var(--color-text-primary) / <alpha-value>)',
+        secondary: 'rgb(var(--color-text-secondary) / <alpha-value>)',
+        muted: 'rgb(var(--color-text-muted) / <alpha-value>)',
+        subtle: 'rgb(var(--color-border-subtle) / <alpha-value>)',
+        strong: 'rgb(var(--color-border-strong) / <alpha-value>)',
+        accent: {
+          DEFAULT: 'rgb(var(--color-electric-green) / <alpha-value>)',
+          dark: 'rgb(var(--color-green-dark) / <alpha-value>)',
+          hover: 'rgb(var(--color-green-hover) / <alpha-value>)',
         },
-        'accent-cyan': {
-          DEFAULT: '#06b6d4',      // secondary highlight
-          light:   '#67e8f9',
-          dark:    '#0891b2',
-        },
-
-        // Status
-        'warn-amber': {
-          DEFAULT: '#f59e0b',
-          light:   '#fcd34d',
-          dark:    '#d97706',
-        },
-        'danger-red': {
-          DEFAULT: '#ef4444',
-          light:   '#fca5a5',
-          dark:    '#dc2626',
-        },
-        'success-green': {
-          DEFAULT: '#22c55e',
-          light:   '#86efac',
-        },
-
-        // Text hierarchy
-        'text-primary':   '#f9fafb',
-        'text-secondary': '#9ca3af',
-        'text-muted':     '#6b7280',
+        cyan: 'rgb(var(--color-cyan) / <alpha-value>)',
+        success: 'rgb(var(--color-success) / <alpha-value>)',
+        warning: 'rgb(var(--color-warning) / <alpha-value>)',
+        danger: 'rgb(var(--color-danger) / <alpha-value>)',
+        info: 'rgb(var(--color-info) / <alpha-value>)',
+        // Backwards-compatible aliases for existing page components.
+        'bg-base': 'rgb(var(--color-background) / <alpha-value>)',
+        'bg-surface': 'rgb(var(--color-surface) / <alpha-value>)',
+        'bg-raised': 'rgb(var(--color-elevated) / <alpha-value>)',
+        'bg-border': 'rgb(var(--color-border-subtle) / <alpha-value>)',
+        'accent-green': 'rgb(var(--color-electric-green) / <alpha-value>)',
+        'accent-green-light': 'rgb(var(--color-green-hover) / <alpha-value>)',
+        'accent-green-dark': 'rgb(var(--color-green-dark) / <alpha-value>)',
+        'accent-cyan': 'rgb(var(--color-cyan) / <alpha-value>)',
+        'warn-amber': 'rgb(var(--color-warning) / <alpha-value>)',
+        'danger-red': 'rgb(var(--color-danger) / <alpha-value>)',
+        'success-green': 'rgb(var(--color-success) / <alpha-value>)',
+        'text-primary': 'rgb(var(--color-text-primary) / <alpha-value>)',
+        'text-secondary': 'rgb(var(--color-text-secondary) / <alpha-value>)',
+        'text-muted': 'rgb(var(--color-text-muted) / <alpha-value>)',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       fontSize: {
         'metric': ['2.25rem', { lineHeight: '1.1', fontWeight: '700' }],
       },
       boxShadow: {
-        'glow-green': '0 0 20px rgba(34, 211, 165, 0.25)',
-        'glow-cyan':  '0 0 20px rgba(6, 182, 212, 0.25)',
+        'glow-green': '0 0 20px rgb(var(--color-electric-green) / 0.16)',
+        'glow-cyan': '0 0 20px rgb(var(--color-cyan) / 0.16)',
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
