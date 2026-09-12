@@ -17,6 +17,7 @@ class DisruptionEvent(BaseModel):
 
 
 class AdaptationResultResponse(BaseModel):
+    adaptation_id: int | None = None
     status: str
     affected_ev_ids: List[str]
     preserved_plan_items: List[str]
@@ -27,3 +28,8 @@ class AdaptationResultResponse(BaseModel):
     unscheduled_ev_ids: List[str]
     schedule_changes: int
     runtime_seconds: float
+    before_cost: float | None = None
+    after_cost: float | None = None
+    before_carbon: float | None = None
+    after_carbon: float | None = None
+    delay_minutes: float | None = None

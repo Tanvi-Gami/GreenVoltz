@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
@@ -17,7 +17,8 @@ import Button from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import Divider from '@/components/ui/Divider';
-import { cancelReservation, getReservations } from '@/services/reservationService';
+import { cancelLiveReservation, cancelReservation, getReservations, listLiveReservations } from '@/services/reservationService';
+import { USE_MOCKS } from '@/services/apiClient';
 import { Reservation } from '@/types/reservation';
 
 export default function ReservationsPage() {
@@ -26,11 +27,40 @@ export default function ReservationsPage() {
   const [activeTab, setActiveTab] = useState<'ALL' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED'>('ALL');
   const [cancelModalRes, setCancelModalRes] = useState<Reservation | null>(null);
   const [receiptModalRes, setReceiptModalRes] = useState<Reservation | null>(null);
+  useEffect(() => {
+    if (USE_MOCKS) return;
+    listLiveReservations().then(items => {
+      setReservations(items.map(item => ({
+        id: String(item.id),
+        stationId: `station-${item.charger_id}`,
+        stationName: `Backend charger ${item.charger_id}`,
+        chargerType: 'Backend assigned',
+        chargingSpeedKw: 0,
+        vehicleName: `Request ${item.request_id}`,
+        window: `${new Date(item.start_time).toLocaleTimeString()} – ${new Date(item.end_time).toLocaleTimeString()}`,
+        date: new Date(item.start_time).toLocaleDateString(),
+        status: item.status === 'CANCELLED' ? 'CANCELLED' : 'ACTIVE',
+        depositPaid: 0,
+        totalCost: 0,
+        energyKwh: 0,
+        passCode: `BACKEND-${item.id}`,
+        distanceKm: 0,
+        createdAt: item.start_time,
+      })));
+    }).catch(() => undefined);
+  }, []);
 
-  const handleCancelReservation = (id: string) => {
-    cancelReservation(id);
-    setReservations(getReservations());
-    setCancelModalRes(null);
+  const handleCancelReservation = async (id: string) => {
+    try {
+      if (USE_MOCKS) cancelReservation(id);
+      else await cancelLiveReservation(Number(id));
+      setReservations(USE_MOCKS ? getReservations() : reservations.map(reservation =>
+        reservation.id === id ? { ...reservation, status: 'CANCELLED' } : reservation,
+      ));
+      setCancelModalRes(null);
+    } catch {
+      setCancelModalRes(null);
+    }
   };
 
   const filteredReservations = reservations.filter((r) => {
@@ -99,7 +129,7 @@ export default function ReservationsPage() {
           <button
             key={tab.key}
             type="button"
-            onClick={() => setActiveTab(tab.key as any)}
+            onClick={() => setActiveTab(tab.key as 'ALL' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED')}
             className={`border-b-2 px-4 py-3 text-xs font-semibold transition-colors ${
               activeTab === tab.key
                 ? 'border-accent text-accent'

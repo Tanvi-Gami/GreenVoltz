@@ -69,6 +69,7 @@ export interface BackendDisruptionEvent {
 }
 
 export interface BackendAdaptationResult {
+  adaptation_id?: number;
   status: string;
   affected_ev_ids: string[];
   preserved_plan_items: string[];
@@ -79,4 +80,48 @@ export interface BackendAdaptationResult {
   unscheduled_ev_ids: string[];
   schedule_changes: number;
   runtime_seconds: number;
+  before_cost?: number;
+  after_cost?: number;
+  before_carbon?: number;
+  after_carbon?: number;
+  delay_minutes?: number;
+}
+
+export interface BackendActiveSession {
+  session_id: number;
+  vehicle_id: number | null;
+  station_id: number;
+  charger_id: number;
+  battery_percent: number;
+  target_percent: number;
+  requested_energy_kwh: number | null;
+  current_power_kw: number;
+  start_time: string;
+  estimated_completion_time: string | null;
+  status: string;
+}
+
+export interface BackendSignalPoint {
+  timestamp: string;
+  demand_kw: number;
+  renewable_percent: number;
+  carbon_intensity_gco2: number;
+  tariff_per_kwh: number;
+}
+
+export interface BackendOptimizationRun {
+  run_id: number;
+  status: string;
+  before_cost: number;
+  after_cost: number;
+  before_carbon: number;
+  after_carbon: number;
+  peak_demand_before_kw: number | null;
+  peak_demand_after_kw: number | null;
+  total_savings: number;
+  carbon_reduction: number;
+  optimized_charging_sessions: Record<string, unknown>[];
+  objective_summary: string;
+  constraints_respected: string[];
+  optimization_timestamp: string;
 }

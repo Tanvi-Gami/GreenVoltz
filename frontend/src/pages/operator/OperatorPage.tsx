@@ -19,14 +19,16 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import Divider from '@/components/ui/Divider';
 import { SectionHeader } from '@/components/ui/SectionHeader';
-import { getNetworkOverview, type StationStatusRecord } from '@/services/operatorService';
+import { getBackendOperatorData, getNetworkOverview, type StationStatusRecord } from '@/services/operatorService';
+import { USE_MOCKS } from '@/services/apiClient';
 
-const overview = getNetworkOverview();
+let overview = getNetworkOverview();
 
 
 function LivePortControl() {
@@ -321,6 +323,50 @@ function CarbonCard() {
 export default function OperatorPage() {
   const [lastUpdated, setLastUpdated] = useState('Just now');
   const [selectedStation, setSelectedStation] = useState<StationStatusRecord | null>(null);
+  useEffect(() => {
+    if (USE_MOCKS) return;
+    getBackendOperatorData().then(({ stations, analytics, sessions, signals }) => {
+      overview = {
+        ...overview,
+        stations: stations.map((station, index) => ({
+          id: String(station.id),
+          name: station.name,
+          location: `${station.latitude.toFixed(3)}, ${station.longitude.toFixed(3)}`,
+          chargers: station.total_chargers,
+          available: station.total_chargers,
+          utilization: 0,
+          status: 'Operational' as const,
+          x: 12 + (index % 4) * 24,
+          y: 20 + Math.floor(index / 4) * 45,
+        })),
+        activeSessions: sessions.map(session => ({
+          id: String(session.session_id),
+          vehicle: `Vehicle ${session.vehicle_id ?? 'unknown'}`,
+          station: `Station ${session.station_id}`,
+          battery: session.battery_percent,
+          powerKw: session.current_power_kw,
+          minutesRemaining: session.estimated_completion_time
+            ? Math.max(0, Math.round((Date.parse(session.estimated_completion_time) - Date.now()) / 60000))
+            : 0,
+          status: 'Charging' as const,
+        })),
+        demandEnergy: signals.map(signal => ({
+          time: new Date(signal.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          demand: Math.min(100, signal.demand_kw),
+          renewable: signal.renewable_percent,
+        })),
+        carbon: signals.map(signal => ({
+          time: new Date(signal.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          value: signal.carbon_intensity_gco2,
+        })),
+        optimizationImpact: [
+          { metric: 'Charging cost', without: `₹${analytics.estimated_cost.toFixed(0)}`, with: `₹${analytics.estimated_cost.toFixed(0)}`, improvement: 'Live aggregate' },
+          { metric: 'CO₂ emissions', without: `${(analytics.estimated_carbon_gco2 / 1000).toFixed(1)} kg`, with: `${(analytics.estimated_carbon_gco2 / 1000).toFixed(1)} kg`, improvement: 'Live aggregate' },
+        ],
+      };
+      setLastUpdated('Just now');
+    }).catch(() => setLastUpdated('API unavailable · demo data'));
+  }, []);
   const refresh = () => setLastUpdated('A few seconds ago');
   return (
     <>

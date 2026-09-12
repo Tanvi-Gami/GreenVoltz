@@ -59,3 +59,6 @@ Keep mocks enabled for the deterministic hackathon flow. Set
 `VITE_USE_MOCKS=false` only when using the service adapters against the seeded
 backend. Existing pages remain mock-first where backend responses do not
 contain the presentation data they display.
+
+The short judge-facing flow is documented in
+[DEMO_RUNBOOK.md](./DEMO_RUNBOOK.md).

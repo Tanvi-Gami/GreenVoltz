@@ -9,7 +9,6 @@ import {
   X,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import type { ConnectorType } from '@/types';
 
 export default function ProfileModal() {
   const {
@@ -33,7 +32,7 @@ export default function ProfileModal() {
   // New Vehicle form state
   const [newMakeModel, setNewMakeModel] = useState('');
   const [newBatteryKwh, setNewBatteryKwh] = useState(60);
-  const [newPlugType, setNewPlugType] = useState<ConnectorType | 'CCS' | 'NACS' | 'Type 2' | 'CHAdeMO'>('CCS');
+  const [newPlugType, setNewPlugType] = useState<'CCS' | 'NACS' | 'Type 2' | 'CHAdeMO'>('CCS');
 
   // Driver personal fields
   const [driverName, setDriverName] = useState(driverProfile.name);
@@ -70,7 +69,7 @@ export default function ProfileModal() {
     addVehicle({
       makeModel: newMakeModel.trim(),
       batteryCapacityKwh: Number(newBatteryKwh),
-      connectorType: newPlugType as any,
+      connectorType: newPlugType,
     });
     setNewMakeModel('');
     setShowAddVehicle(false);
@@ -252,7 +251,7 @@ export default function ProfileModal() {
                       <label className="type-small mb-1 block font-medium text-primary">Plug Type</label>
                       <select
                         value={newPlugType}
-                        onChange={(e) => setNewPlugType(e.target.value as any)}
+                        onChange={(e) => setNewPlugType(e.target.value as 'CCS' | 'NACS' | 'Type 2' | 'CHAdeMO')}
                         className="w-full rounded-lg border border-subtle bg-surface px-3 py-2 text-sm text-primary focus-ring"
                       >
                         <option value="CCS">CCS Combo</option>

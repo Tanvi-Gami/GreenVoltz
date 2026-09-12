@@ -97,6 +97,9 @@ def adapt_event(db, event: DisruptionEvent) -> AdaptationResult:
     elif res.solver_status == "INFEASIBLE":
         status = AdaptationStatus.INFEASIBLE
 
+    def plan_metric(items, field):
+        return sum(float(item.get(field, 0)) * float(item.get("energy_kwh", 0)) for item in items)
+
     ar = AdaptationResult(
         id=None,
         status=status,
@@ -110,7 +113,14 @@ def adapt_event(db, event: DisruptionEvent) -> AdaptationResult:
         unscheduled_ev_ids=res.unscheduled_ev_ids,
         schedule_changes=len(added) + len(removed),
         runtime_seconds=runtime,
-        metadata={"solver_status": res.solver_status},
+        metadata={
+            "solver_status": res.solver_status,
+            "before_cost": plan_metric(existing_plan, "tariff"),
+            "after_cost": plan_metric(new_plan, "tariff"),
+            "before_carbon": plan_metric(existing_plan, "carbon_intensity"),
+            "after_carbon": plan_metric(new_plan, "carbon_intensity"),
+            "delay_minutes": 0.0,
+        },
     )
 
     # persist adaptation result
@@ -121,6 +131,10 @@ def adapt_event(db, event: DisruptionEvent) -> AdaptationResult:
             result_data=json.dumps(ar.model_dump(), default=str),
         )
         db.add(db_rec)
+        db.commit()
+        db.refresh(db_rec)
+        ar.id = db_rec.id
+        db_rec.result_data = json.dumps(ar.model_dump(), default=str)
         db.commit()
     except Exception:
         db.rollback()
