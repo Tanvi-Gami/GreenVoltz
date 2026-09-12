@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 
+from backend.app.api.v1.adaptation import router as adaptation_router
 from backend.app.api.v1.analytics import router as analytics_router
 from backend.app.api.v1.charging import router as charging_router
 from backend.app.api.v1.health import router as health_router
@@ -14,3 +15,4 @@ api_router.include_router(stations_router)
 api_router.include_router(charging_router)
 api_router.include_router(reservations_router)
 api_router.include_router(analytics_router)
+api_router.include_router(adaptation_router)

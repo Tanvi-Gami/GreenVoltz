@@ -147,3 +147,13 @@ class OptimisationResult(Base):
     total_cost: Mapped[float] = mapped_column(Float, nullable=True)
     total_carbon_gco2: Mapped[float] = mapped_column(Float, nullable=True)
     schedule_data: Mapped[str] = mapped_column(Text, nullable=True)
+
+
+class AdaptationResult(Base):
+    __tablename__ = "adaptation_results"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    run_timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    status: Mapped[str] = mapped_column(String(50), nullable=False)
+    event_data: Mapped[str] = mapped_column(Text, nullable=True)
+    result_data: Mapped[str] = mapped_column(Text, nullable=True)
