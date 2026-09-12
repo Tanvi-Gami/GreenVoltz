@@ -159,3 +159,17 @@ export const driverPageData: DriverPageData = {
     { station: 'CityCharge North', date: 'Sep 10', energyKwh: 22, cost: 149 },
   ],
 };
+
+/**
+ * Raw backend adapter. The current driver mock contains richer presentation
+ * data than the backend recommendation contract, so normalization remains
+ * explicit until station metadata is available from the API.
+ */
+export function getDriverRecommendation(requestBody: BackendChargingRequest): Promise<BackendChargingRecommendation> {
+  return request<BackendChargingRecommendation>('/api/v1/charging/recommend', {
+    method: 'POST',
+    body: JSON.stringify(requestBody),
+  });
+}
+import { request } from '@/services/apiClient';
+import type { BackendChargingRecommendation, BackendChargingRequest } from '@/services/backendContracts';

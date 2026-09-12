@@ -123,3 +123,12 @@ export function runOptimization(): Promise<OptimizationData> {
     window.setTimeout(() => resolve(getOptimizationData()), 900);
   });
 }
+
+export function runBackendOptimization(requestBody: BackendChargingRequest): Promise<BackendChargingRecommendation> {
+  return request<BackendChargingRecommendation>('/api/v1/charging/recommend', {
+    method: 'POST',
+    body: JSON.stringify(requestBody),
+  });
+}
+import { request } from '@/services/apiClient';
+import type { BackendChargingRecommendation, BackendChargingRequest } from '@/services/backendContracts';

@@ -101,3 +101,16 @@ export function getNetworkOverview(): OperatorOverview {
     ],
   };
 }
+
+export async function getBackendNetworkInputs(): Promise<{
+  stations: BackendStation[];
+  analytics: BackendAnalyticsOverview;
+}> {
+  const [stations, analytics] = await Promise.all([
+    request<BackendStation[]>('/api/v1/stations/'),
+    request<BackendAnalyticsOverview>('/api/v1/analytics/overview'),
+  ]);
+  return { stations, analytics };
+}
+import { request } from '@/services/apiClient';
+import type { BackendAnalyticsOverview, BackendStation } from '@/services/backendContracts';
