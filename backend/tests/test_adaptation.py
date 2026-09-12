@@ -4,11 +4,16 @@ from datetime import datetime, timedelta
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 import backend.app.database.models as dbmodels
 from backend.app.database.base import Base
 from backend.app.main import create_app
+from intelligence.adaptation.models import DisruptionEvent
+from intelligence.adaptation.replanner import build_sim_for_replan
+from intelligence.optimiser.result import ChargingPlanItem, OptimisationResult
 from intelligence.optimiser.scheduler import optimise
+from intelligence.optimiser.validation import validate_plan
 from intelligence.simulation.models import (
     EV,
     SimulationState,
@@ -25,7 +30,11 @@ from intelligence.simulation.models import (
 
 def get_test_app_and_session():
     app = create_app()
-    engine = create_engine("sqlite:///./test_api_adapt.db", connect_args={"check_same_thread": False})
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     Base.metadata.create_all(engine)
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -267,8 +276,10 @@ def test_scenario_charger_failure():
 
         # choose a charger assigned to v1
         v1_chargers = {it["charger_id"] for it in by_ev[v1_id]}
+        v2_chargers = {it["charger_id"] for it in by_ev[v2_id]}
         assert v1_chargers, "v1 has no charger assignments"
-        target_charger = next(iter(v1_chargers))
+        target_charger = next(iter(v1_chargers - v2_chargers), None)
+        assert target_charger is not None, "v1 must have a charger not used by v2"
 
         payload = {"event_type": "charger_unavailable", "charger_id": target_charger}
         r = client.post("/api/v1/adaptation/events", json=payload)
@@ -403,7 +414,7 @@ def test_congestion_adaptation():
         db.close()
 
 
-def test_power_reduction_feasible_and_infeasible():
+def test_power_reduction_feasible():
     app, SessionLocal = get_test_app_and_session()
     client = TestClient(app)
     db = SessionLocal()
@@ -421,14 +432,180 @@ def test_power_reduction_feasible_and_infeasible():
         r = client.post("/api/v1/adaptation/events", json=payload)
         assert r.status_code == 200
         body = r.json()
-        assert body["status"] in ("ADAPTED", "PARTIALLY_ADAPTED", "NO_IMPACT")
+        assert body["status"] == "ADAPTED"
+        assert v1_id not in body["unscheduled_ev_ids"]
 
-        # severe reduction (infeasible)
-        payload2 = {"event_type": "power_reduction", "charger_id": charger_id, "old_value": 11.0, "new_value": 0.01}
-        r2 = client.post("/api/v1/adaptation/events", json=payload2)
-        assert r2.status_code == 200
-        body2 = r2.json()
-        assert body2["status"] in ("INFEASIBLE", "NO_IMPACT", "ADAPTED")
+        adapted_sim = build_sim_for_replan(
+            db,
+            [v1_id],
+            [item for item in before_plan if item["ev_id"] != v1_id],
+            event=DisruptionEvent(event_id=None, **payload),
+            horizon_slots=4,
+        )
+        affected_plan = [
+            ChargingPlanItem(**item)
+            for item in body["new_charging_plan"]
+            if item["ev_id"] == v1_id
+        ]
+        validation_result = OptimisationResult(
+            solver_status="OPTIMAL",
+            objective_value=0.0,
+            charging_plan=affected_plan,
+            total_energy_delivered=0.0,
+            total_cost=0.0,
+            total_carbon=0.0,
+            renewable_energy_used=0.0,
+            congestion_score=0.0,
+            reliability_score=0.0,
+            unscheduled_ev_ids=[],
+            solver_runtime_seconds=0.0,
+            metadata={},
+        )
+        assert validate_plan(adapted_sim, validation_result) == []
+        assert affected_plan
+        reduced_charger_items = [
+            item for item in affected_plan if item.charger_id == charger_id
+        ]
+        assert all(item.power_kw <= 5.0 for item in reduced_charger_items)
+    finally:
+        db.close()
+
+
+def test_power_reduction_impossible():
+    app, SessionLocal = get_test_app_and_session()
+    client = TestClient(app)
+    db = SessionLocal()
+    try:
+        station = dbmodels.ChargingStation(
+            name="Single", latitude=0.0, longitude=0.0, total_chargers=1
+        )
+        db.add(station)
+        db.commit()
+        db.refresh(station)
+
+        charger = dbmodels.Charger(
+            station_id=station.id, connector_type="Type2", max_power_kw=11.0
+        )
+        db.add(charger)
+        db.commit()
+        db.refresh(charger)
+
+        vehicle = dbmodels.Vehicle(
+            make="Single", model="EV", battery_capacity_kwh=50.0, max_charge_rate_kw=11.0
+        )
+        db.add(vehicle)
+        db.commit()
+        db.refresh(vehicle)
+
+        now = datetime.utcnow()
+        request = dbmodels.ChargingRequest(
+            vehicle_id=vehicle.id,
+            arrival_time=now,
+            departure_time=now + timedelta(hours=1),
+            energy_required_kwh=5.0,
+            current_soc_pct=0.0,
+            target_soc_pct=0.2,
+            connector_type="Type2",
+            max_power_kw=11.0,
+        )
+        db.add(request)
+        db.commit()
+        db.refresh(request)
+
+        sim = SimulationState(
+            generated_at=now,
+            horizon_slots=1,
+            time_step_minutes=60,
+            stations=[
+                Station(
+                    station_id=str(station.id),
+                    name=station.name,
+                    latitude=station.latitude,
+                    longitude=station.longitude,
+                    charger_ids=[str(charger.id)],
+                    total_capacity=1,
+                    reliability_score=0.9,
+                    base_tariff=0.2,
+                )
+            ],
+            chargers=[
+                SimCharger(
+                    charger_id=str(charger.id),
+                    station_id=str(station.id),
+                    connector_type="Type2",
+                    max_power_kw=11.0,
+                )
+            ],
+            evs=[
+                EV(
+                    ev_id=str(vehicle.id),
+                    battery_capacity_kwh=50.0,
+                    current_soc=0.0,
+                    target_soc=0.2,
+                    max_charging_power_kw=11.0,
+                    connector_type="Type2",
+                    arrival_slot=0,
+                    departure_slot=1,
+                    preferred_station_ids=[],
+                )
+            ],
+            requests=[
+                SimRequest(
+                    request_id=str(request.id),
+                    ev_id=str(vehicle.id),
+                    arrival_slot=0,
+                    departure_slot=1,
+                    energy_required_kwh=5.0,
+                    current_soc=0.0,
+                    target_soc=0.2,
+                    connector_type="Type2",
+                    max_power_kw=11.0,
+                    budget=None,
+                    preferences={},
+                )
+            ],
+            station_states=[
+                StationState(
+                    station_id=str(station.id),
+                    available_chargers=1,
+                    occupied_chargers=0,
+                    queue_length=0,
+                    estimated_wait_minutes=0,
+                    current_tariff=0.2,
+                    renewable_availability=0.0,
+                    carbon_intensity_gco2=400.0,
+                    reliability=0.9,
+                    congestion=0.0,
+                )
+            ],
+            tariffs=[[0.2]],
+            renewable_profile=[0.0],
+            carbon_profile=[400.0],
+        )
+        initial = optimise(sim, time_limit_seconds=5, num_workers=1)
+        db.add(
+            dbmodels.OptimisationResult(
+                status=initial.solver_status,
+                total_cost=0.0,
+                total_carbon_gco2=0.0,
+                schedule_data=json.dumps([item.model_dump() for item in initial.charging_plan]),
+            )
+        )
+        db.commit()
+
+        response = client.post(
+            "/api/v1/adaptation/events",
+            json={
+                "event_type": "power_reduction",
+                "charger_id": str(charger.id),
+                "old_value": 11.0,
+                "new_value": 0.01,
+            },
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["status"] == "INFEASIBLE"
+        assert str(vehicle.id) in body["unscheduled_ev_ids"]
     finally:
         db.close()
 
