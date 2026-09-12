@@ -1,3 +1,5 @@
+export * from './auth';
+
 // ─── Shared domain types ────────────────────────────────────────────────────
 
 export type NetworkStatus = 'online' | 'degraded' | 'offline';

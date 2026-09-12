@@ -7,6 +7,7 @@ import LoadingState from '@/components/ui/LoadingState';
 const LandingPage      = lazy(() => import('@/pages/landing/LandingPage'));
 const DriverPage       = lazy(() => import('@/pages/driver/DriverPage'));
 const OperatorPage     = lazy(() => import('@/pages/operator/OperatorPage'));
+const LoginPage        = lazy(() => import('@/pages/auth/LoginPage'));
 const ReservationsPage = lazy(() => import('@/pages/reservations/ReservationsPage'));
 const EnergyPage       = lazy(() => import('@/pages/energy/EnergyPage'));
 const OptimizationPage = lazy(() => import('@/pages/optimization/OptimizationPage'));
@@ -32,7 +33,9 @@ export const router = createBrowserRouter([
     path: '/',
     element: <AppLayout />,
     children: [
-      { index: true,              element: suspend(LandingPage)      },
+      { index: true,              element: suspend(LoginPage)        },
+      { path: 'login',            element: suspend(LoginPage)        },
+      { path: 'overview',         element: suspend(LandingPage)      },
       { path: 'driver',           element: suspend(DriverPage)       },
       { path: 'operator',         element: suspend(OperatorPage)     },
       { path: 'reservations',     element: suspend(ReservationsPage) },

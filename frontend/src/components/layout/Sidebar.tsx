@@ -3,7 +3,6 @@ import {
   BatteryCharging,
   CalendarClock,
   Gauge,
-  LayoutDashboard,
   MapPin,
   Network,
   Settings2,
@@ -15,21 +14,30 @@ import NavigationItem from '@/components/navigation/NavigationItem';
 import NetworkStatus from '@/components/navigation/NetworkStatus';
 import UserMenu from '@/components/navigation/UserMenu';
 
-const primaryItems = [
-  { to: '/driver', label: 'Find Charger', icon: MapPin },
-  { to: '/operator', label: 'Charging', icon: BatteryCharging },
-  { to: '/reservations', label: 'Reservations', icon: CalendarClock },
-  { to: '/energy', label: 'Energy Insights', icon: Activity },
-];
-
 const optimizationItems = [
   { to: '/optimization', label: 'Optimization', icon: Gauge },
   { to: '/disruptions', label: 'Disruptions', icon: Network },
 ];
 
+import { useAuth } from '@/context/AuthContext';
+
 export default function Sidebar() {
   const { sidebarCollapsed, mobileMenuOpen, closeMobileMenu } = useApp();
+  const { activeRole } = useAuth();
   const closeOnMobile = () => closeMobileMenu();
+
+  const driverItems = [
+    { to: '/driver', label: 'Find Charger', icon: MapPin },
+    { to: '/reservations', label: 'Reservations', icon: CalendarClock },
+    { to: '/energy', label: 'Energy Insights', icon: Activity },
+  ];
+
+  const operatorItems = [
+    { to: '/operator', label: 'Station Console', icon: BatteryCharging },
+    { to: '/energy', label: 'Energy Insights', icon: Activity },
+  ];
+
+  const roleItems = activeRole === 'driver' ? driverItems : operatorItems;
 
   return (
     <aside
@@ -52,15 +60,19 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-5">
-        {!sidebarCollapsed && <p className="type-technical mb-2 px-3">Overview</p>}
-        <NavigationItem to="/" label="Overview" icon={LayoutDashboard} end collapsed={sidebarCollapsed} onNavigate={closeOnMobile} />
-        {primaryItems.map(item => (
+        {!sidebarCollapsed && (
+          <p className="type-technical mb-2 px-3">
+            {activeRole === 'driver' ? 'EV Driver Portal' : 'Operator Portal'}
+          </p>
+        )}
+        
+        {roleItems.map((item) => (
           <NavigationItem key={item.to} {...item} collapsed={sidebarCollapsed} onNavigate={closeOnMobile} />
         ))}
 
         <Divider className="my-5" />
-        {!sidebarCollapsed && <p className="type-technical mb-2 px-3">Optimization</p>}
-        {optimizationItems.map(item => (
+        {!sidebarCollapsed && <p className="type-technical mb-2 px-3">Analytics & Grid</p>}
+        {optimizationItems.map((item) => (
           <NavigationItem key={item.to} {...item} collapsed={sidebarCollapsed} onNavigate={closeOnMobile} />
         ))}
       </nav>
