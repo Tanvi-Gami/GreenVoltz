@@ -14,11 +14,6 @@ import NavigationItem from '@/components/navigation/NavigationItem';
 import NetworkStatus from '@/components/navigation/NetworkStatus';
 import UserMenu from '@/components/navigation/UserMenu';
 
-const optimizationItems = [
-  { to: '/optimization', label: 'Optimization', icon: Gauge },
-  { to: '/disruptions', label: 'Disruptions', icon: Network },
-];
-
 import { useAuth } from '@/context/AuthContext';
 
 export default function Sidebar() {
@@ -29,12 +24,10 @@ export default function Sidebar() {
   const driverItems = [
     { to: '/driver', label: 'Find Charger', icon: MapPin },
     { to: '/reservations', label: 'Reservations', icon: CalendarClock },
-    { to: '/energy', label: 'Energy Insights', icon: Activity },
   ];
 
   const operatorItems = [
     { to: '/operator', label: 'Station Console', icon: BatteryCharging },
-    { to: '/energy', label: 'Energy Insights', icon: Activity },
   ];
 
   const roleItems = activeRole === 'driver' ? driverItems : operatorItems;
@@ -70,11 +63,15 @@ export default function Sidebar() {
           <NavigationItem key={item.to} {...item} collapsed={sidebarCollapsed} onNavigate={closeOnMobile} />
         ))}
 
-        <Divider className="my-5" />
-        {!sidebarCollapsed && <p className="type-technical mb-2 px-3">Analytics & Grid</p>}
-        {optimizationItems.map((item) => (
-          <NavigationItem key={item.to} {...item} collapsed={sidebarCollapsed} onNavigate={closeOnMobile} />
-        ))}
+        {activeRole === 'operator' && (
+          <>
+            <Divider className="my-5" />
+            {!sidebarCollapsed && <p className="type-technical mb-2 px-3">Analytics & Grid</p>}
+            <NavigationItem to="/energy" label="Energy Insights" icon={Activity} collapsed={sidebarCollapsed} onNavigate={closeOnMobile} />
+            <NavigationItem to="/optimization" label="Optimization" icon={Gauge} collapsed={sidebarCollapsed} onNavigate={closeOnMobile} />
+            <NavigationItem to="/disruptions" label="Disruptions" icon={Network} collapsed={sidebarCollapsed} onNavigate={closeOnMobile} />
+          </>
+        )}
       </nav>
 
       <div className="shrink-0 space-y-4 border-t border-subtle px-4 py-4">
