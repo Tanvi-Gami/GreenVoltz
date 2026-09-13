@@ -22,14 +22,14 @@ from backend.app.database import models
 from backend.app.database.base import Base
 
 STATIONS = [
-    ("GreenVolt Central Hub", 12.9716, 77.5946, 8),
-    ("GreenVolt Riverside", 12.9750, 77.6080, 6),
-    ("EcoCharge West", 12.9680, 77.5700, 8),
-    ("CityCharge North", 13.0100, 77.5900, 10),
-    ("GreenVolt Airport", 12.9520, 77.6650, 12),
-    ("EcoCharge South", 12.9250, 77.6000, 8),
-    ("CityCharge Metro", 12.9850, 77.6200, 10),
-    ("GreenVolt Harbor", 12.9450, 77.5850, 6),
+    ("GreenVolt Central Hub", 23.2156, 72.6369, 8),
+    ("GreenVolt Riverside", 23.2320, 72.6500, 6),
+    ("EcoCharge West", 23.2040, 72.6040, 8),
+    ("CityCharge North", 23.1880, 72.6200, 10),
+    ("GreenVolt Airport", 23.1050, 72.6250, 12),
+    ("EcoCharge South", 23.1650, 72.6400, 8),
+    ("CityCharge Metro", 23.2250, 72.6700, 10),
+    ("GreenVolt Infocity", 23.1900, 72.6450, 6),
 ]
 
 
@@ -119,6 +119,12 @@ def seed(database_url: str, reset: bool) -> None:
                 )
         db.add_all(chargers)
         db.flush()
+        db.add_all(
+            [
+                models.StationWaitingList(station_id=station.id, waiting_count=index % 5)
+                for index, station in enumerate(stations)
+            ]
+        )
 
         requests = []
         for index, vehicle in enumerate(vehicles):

@@ -1,5 +1,6 @@
 import { Suspense, lazy } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import LoadingState from '@/components/ui/LoadingState';
 
@@ -27,6 +28,16 @@ const suspend = (Page: React.ComponentType) => (
 );
 
 import type React from 'react';
+import { useAuth } from '@/context/AuthContext';
+
+function OperatorOnly({ children }: { children: React.ReactNode }) {
+  const { activeRole } = useAuth();
+  return activeRole === 'operator' ? <>{children}</> : <Navigate to="/driver" replace />;
+}
+
+const operatorOnly = (Page: React.ComponentType) => (
+  <OperatorOnly>{suspend(Page)}</OperatorOnly>
+);
 
 export const router = createBrowserRouter([
   {
@@ -39,11 +50,11 @@ export const router = createBrowserRouter([
       { path: 'driver',           element: suspend(DriverPage)       },
       { path: 'operator',         element: suspend(OperatorPage)     },
       { path: 'reservations',     element: suspend(ReservationsPage) },
-      { path: 'energy',           element: suspend(EnergyPage)       },
-      { path: 'optimization',     element: suspend(OptimizationPage) },
-      { path: 'disruption',       element: suspend(DisruptionPage)   },
-      { path: 'disruptions',      element: suspend(DisruptionPage)   },
-      { path: 'analytics',        element: suspend(AnalyticsPage)    },
+      { path: 'energy',           element: operatorOnly(EnergyPage)       },
+      { path: 'optimization',     element: operatorOnly(OptimizationPage) },
+      { path: 'disruption',       element: operatorOnly(DisruptionPage)   },
+      { path: 'disruptions',      element: operatorOnly(DisruptionPage)   },
+      { path: 'analytics',        element: operatorOnly(AnalyticsPage)    },
     ],
   },
 ]);
